@@ -1,0 +1,54 @@
+/* ========================================
+   Cynemora — Render Generation API Route
+   Server-side video generation through
+   provider-abstracted rendering layer
+   ======================================== */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getRenderManager } from "@/lib/rendering/manager";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { prompt, aspectRatio, duration, referenceImages, provider } = body;
+
+    if (!prompt || typeof prompt !== "string") {
+      return NextResponse.json(
+        { error: "Render prompt is required" },
+        { status: 400 }
+      );
+    }
+
+    const manager = getRenderManager();
+
+    // Generate shot through the provider abstraction
+    const operation = await manager.generateShot(
+      {
+        prompt,
+        aspectRatio: aspectRatio || "16:9",
+        duration: duration || 8,
+        referenceImages: referenceImages || [],
+      },
+      provider
+    );
+
+    return NextResponse.json({
+      success: true,
+      operation: {
+        id: operation.id,
+        provider: operation.providerUsed,
+        status: operation.status,
+        estimatedTimeMs: operation.estimatedTimeMs,
+      },
+    });
+  } catch (error) {
+    console.error("[API] Render generation error:", error);
+    return NextResponse.json(
+      {
+        error: "Render generation failed",
+        details: (error as Error).message,
+      },
+      { status: 500 }
+    );
+  }
+}

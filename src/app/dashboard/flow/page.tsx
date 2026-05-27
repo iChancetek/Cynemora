@@ -1,0 +1,519 @@
+/* ========================================
+   Cynemora — Text to Video Flow Playground
+   Direct Google Flow-like video generation
+   ======================================== */
+
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { collection, addDoc, getDocs, query, where, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
+import { useAuth } from "@/lib/firebase/auth-context";
+import styles from "./flow.module.css";
+
+interface FlowVideo {
+  id?: string;
+  prompt: string;
+  style: string;
+  aspectRatio: string;
+  movement: string;
+  videoUrl: string;
+  createdAt: any;
+}
+
+
+
+const PRESETS = [
+  { name: "Cinematic Dark", promptAppend: "dark moody lighting, cinematic composition, award-winning cinematography, hyper-realistic details, shot on 35mm" },
+  { name: "Sci-Fi Space", promptAppend: "futuristic cosmic setting, vibrant nebulas, high-tech structure, epic scale, volumetric light beams, photorealistic" },
+  { name: "Neon Cyberpunk", promptAppend: "rain-slicked neon street, cyberpunk aesthetics, wet reflections, pink and cyan hues, highly detailed, blade runner style" },
+  { name: "Epic Fantasy", promptAppend: "ancient mystical landscape, towering mountains, magical glow, fantasy cinema, ethereal atmosphere, rich textures" },
+  { name: "Classic Noir", promptAppend: "high-contrast black and white, rain shadows, hard light, retro cinematic composition, dramatic silhouettes" }
+];
+
+export default function FlowPlayground() {
+  const { user } = useAuth();
+  
+  const [prompt, setPrompt] = useState("");
+  const [selectedStyle, setSelectedStyle] = useState("");
+  const [aspectRatio, setAspectRatio] = useState("16:9");
+  const [duration, setDuration] = useState("4");
+  const [cameraMovement, setCameraMovement] = useState("pan");
+  const [movementSpeed, setMovementSpeed] = useState("slow");
+  
+  const [rendering, setRendering] = useState(false);
+  const [activeStep, setActiveStep] = useState(0); // 0 -> 4
+  const [activeVideoUrl, setActiveVideoUrl] = useState("");
+  const [history, setHistory] = useState<FlowVideo[]>([]);
+  const [logText, setLogText] = useState("");
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load history from Firestore
+  useEffect(() => {
+    async function loadHistory() {
+      if (!user) return;
+      try {
+        const q = query(
+          collection(db, "renders"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const items: FlowVideo[] = [];
+        
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.videoUrl) {
+            items.push({
+              id: docSnap.id,
+              prompt: d.prompt || "",
+              style: d.style || "custom",
+              aspectRatio: d.aspectRatio || "16:9",
+              movement: d.movement || "static",
+              videoUrl: d.videoUrl,
+              createdAt: d.createdAt?.toDate() || new Date()
+            });
+          }
+        });
+        
+        setHistory(items);
+        if (items.length > 0) {
+          setActiveVideoUrl(items[0].videoUrl);
+        }
+      } catch (err) {
+        console.warn("Firestore collection 'renders' query failed or restricted, reading from local state persistence:", (err as Error).message);
+        const localData = localStorage.getItem(`renders_${user.uid}`);
+        if (localData) {
+          try {
+            const parsed = JSON.parse(localData);
+            const formatted = parsed.map((item: any) => ({
+              ...item,
+              createdAt: new Date(item.createdAt)
+            }));
+            setHistory(formatted);
+            if (formatted.length > 0) {
+              setActiveVideoUrl(formatted[0].videoUrl);
+            }
+          } catch (e) {
+            setHistory([]);
+          }
+        } else {
+          setHistory([]);
+        }
+      }
+    }
+    
+    loadHistory();
+  }, [user]);
+
+  // Click on a preset style
+  const handlePresetSelect = (preset: typeof PRESETS[0]) => {
+    if (selectedStyle === preset.name) {
+      setSelectedStyle("");
+      // Remove appended text if prompt contains it
+      setPrompt((prev) => prev.replace(`, ${preset.promptAppend}`, ""));
+    } else {
+      setSelectedStyle(preset.name);
+      setPrompt((prev) => {
+        // If there's already a style appended, swap it
+        let cleanPrompt = prev;
+        PRESETS.forEach((p) => {
+          cleanPrompt = cleanPrompt.replace(`, ${p.promptAppend}`, "");
+        });
+        return `${cleanPrompt.trim()}, ${preset.promptAppend}`;
+      });
+    }
+  };
+
+  // Submit Text-to-Video Generation request
+  const handleGenerate = async () => {
+    if (!prompt.trim()) return;
+    setRendering(true);
+    setActiveStep(1);
+    setLogText("Compiling custom prompts and injecting camera instructions...");
+    
+    try {
+      // 1. Submit render request to API
+      const res = await fetch("/api/render/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `${prompt} with ${cameraMovement} camera movement at ${movementSpeed} speed.`,
+          aspectRatio,
+          duration: parseInt(duration),
+          provider: "veo-3.1"
+        })
+      });
+      
+      if (!res.ok) {
+        const errBody = await res.json();
+        throw new Error(errBody.error || "Failed to submit render request");
+      }
+      
+      const resData = await res.json();
+      const operation = resData.operation;
+      
+      if (!operation || !operation.id) {
+        throw new Error("No operation received from render API");
+      }
+      
+      const operationId = operation.id;
+      const provider = operation.provider;
+      
+      setActiveStep(2);
+      setLogText("GPU cluster container slot allocated. Beginning progressive render...");
+      
+      // 2. Poll render status until complete or failed
+      let isDone = false;
+      let completedVideoUrl = "";
+      let attempts = 0;
+      const maxAttempts = 40; // 40 attempts * 3 seconds = 120 seconds max timeout
+      
+      while (!isDone && attempts < maxAttempts) {
+        attempts++;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        
+        const statusRes = await fetch(`/api/render/status?operationId=${encodeURIComponent(operationId)}&provider=${encodeURIComponent(provider)}`);
+        if (!statusRes.ok) continue;
+        
+        const statusData = await statusRes.json();
+        const opStatus = statusData.operation;
+        
+        if (opStatus) {
+          if (opStatus.status === "completed") {
+            completedVideoUrl = opStatus.videoUrl || "";
+            isDone = true;
+          } else if (opStatus.status === "failed") {
+            throw new Error("Google Veo 3.1 rendering pipeline failed");
+          } else {
+            // Update progress steps dynamically in real time
+            const progress = opStatus.progress || 50;
+            if (progress >= 75) {
+              setActiveStep(4);
+              setLogText("Veo 3.1 frame serialization complete. Caching and syncing to Firebase Storage...");
+            } else {
+              setActiveStep(3);
+              setLogText(`Veo 3.1 generating cinematic sequences (${progress}% complete)...`);
+            }
+          }
+        }
+      }
+      
+      if (!isDone) {
+        throw new Error("Render timed out on the GPU cluster");
+      }
+      
+      if (!completedVideoUrl) {
+        throw new Error("Rendering complete, but no video URI returned by provider");
+      }
+
+      // 3. Direct DOM update to prevent any React state-batching race conditions!
+      if (videoRef.current) {
+        videoRef.current.src = completedVideoUrl;
+        videoRef.current.load();
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Browser auto-play blocked, waiting for direct user play click:", error.message);
+          });
+        }
+      }
+
+      setActiveVideoUrl(completedVideoUrl);
+
+      // 4. Save metadata to Firestore database
+      let docId = `render_${Date.now()}`;
+      const newHistoryItem = {
+        id: docId,
+        prompt,
+        style: selectedStyle || "custom",
+        aspectRatio,
+        movement: `${cameraMovement} (${movementSpeed})`,
+        videoUrl: completedVideoUrl,
+        createdAt: new Date()
+      };
+
+      try {
+        if (user) {
+          const docRef = await addDoc(collection(db, "renders"), {
+            userId: user.uid,
+            prompt,
+            style: selectedStyle || "custom",
+            aspectRatio,
+            movement: `${cameraMovement} (${movementSpeed})`,
+            videoUrl: completedVideoUrl,
+            createdAt: new Date(),
+            status: "completed"
+          });
+          docId = docRef.id;
+          newHistoryItem.id = docId;
+        }
+      } catch (saveErr) {
+        console.warn("Could not save render metadata to Firestore due to rule restrictions, utilizing local storage persistence:", (saveErr as Error).message);
+      }
+
+      // Add to local history list
+      setHistory((prev) => {
+        const updated = [newHistoryItem, ...prev];
+        if (user) {
+          localStorage.setItem(`renders_${user.uid}`, JSON.stringify(updated));
+        }
+        return updated;
+      });
+
+      setLogText("Video successfully rendered and played!");
+    } catch (err) {
+      console.error("[Generation Fail]", err);
+      alert(`Render Generation failed: ${(err as Error).message}`);
+    } finally {
+      setRendering(false);
+      setActiveStep(0);
+    }
+  };
+
+  return (
+    <div className={styles.flowPage}>
+      {/* Sidebar Controls */}
+      <div className={styles.controlsPanel}>
+        <div>
+          <h1 className={styles.panelTitle}>Text to Video</h1>
+          <p className={styles.panelDesc}>
+            Generate high-end cinematic sequences using Google Veo 3.1.
+          </p>
+        </div>
+
+        {/* Input Prompt */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Visual Prompt</label>
+          <textarea
+            className={styles.textarea}
+            placeholder="Describe what you want to see inside the scene in detail..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={rendering}
+          />
+        </div>
+
+        {/* Preset Styles */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Styles & Moods</label>
+          <div className={styles.presetsGrid}>
+            {PRESETS.map((preset) => (
+              <span
+                key={preset.name}
+                className={`${styles.presetChip} ${
+                  selectedStyle === preset.name ? styles.presetChipActive : ""
+                }`}
+                onClick={() => !rendering && handlePresetSelect(preset)}
+              >
+                {preset.name}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Framing options */}
+        <div className={styles.selectGrid}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Aspect Ratio</label>
+            <select
+              className={styles.select}
+              value={aspectRatio}
+              onChange={(e) => setAspectRatio(e.target.value)}
+              disabled={rendering}
+            >
+              <option value="16:9">16:9 Landscape</option>
+              <option value="9:16">9:16 Portrait</option>
+              <option value="1:1">1:1 Square</option>
+            </select>
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Duration</label>
+            <select
+              className={styles.select}
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              disabled={rendering}
+            >
+              <option value="4">4 Seconds</option>
+              <option value="8">8 Seconds</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Camera movement */}
+        <div className={styles.selectGrid}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Camera Movement</label>
+            <select
+              className={styles.select}
+              value={cameraMovement}
+              onChange={(e) => setCameraMovement(e.target.value)}
+              disabled={rendering}
+            >
+              <option value="pan">Pan (Horizontal)</option>
+              <option value="tilt">Tilt (Vertical)</option>
+              <option value="zoom">Zoom (In/Out)</option>
+              <option value="dolly">Dolly (Push/Pull)</option>
+              <option value="static">Static (Tripod)</option>
+            </select>
+          </div>
+          
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Movement Speed</label>
+            <select
+              className={styles.select}
+              value={movementSpeed}
+              onChange={(e) => setMovementSpeed(e.target.value)}
+              disabled={rendering}
+            >
+              <option value="slow">Slow & Cinematic</option>
+              <option value="medium">Medium Pacing</option>
+              <option value="fast">Fast Action</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Generate Button */}
+        <button
+          className="btn btn-primary btn-lg generateBtn"
+          onClick={handleGenerate}
+          disabled={rendering || !prompt.trim()}
+          id="flow-generate-btn"
+        >
+          {rendering ? "Generating Video..." : "⚡ Generate Video"}
+        </button>
+      </div>
+
+      {/* Main Screen Output */}
+      <div className={styles.outputArea}>
+        {/* Theater Player */}
+        <div className={styles.theaterBox}>
+          {activeVideoUrl ? (
+            <video
+              ref={videoRef}
+              className={styles.theaterVideo}
+              src={activeVideoUrl}
+              controls
+              autoPlay
+              loop
+            />
+          ) : (
+            <div className={styles.theaterPlaceholder}>
+              <div className={styles.theaterPlaceholderIcon}>⚡</div>
+              <div className={styles.theaterPlaceholderText}>
+                Input your narrative prompt and hit Generate to view live Google Flow cinematic rendering.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Flow Stage indicator */}
+        {(rendering || activeStep > 0) && (
+          <div className={styles.statusFlowCard}>
+            <div className={styles.flowHeader}>
+              <span className={styles.flowTitle}>Google Flow Pipeline</span>
+              <span style={{ fontSize: "var(--text-xs)", opacity: 0.6 }}>
+                {logText}
+              </span>
+            </div>
+            
+            <div className={styles.flowSteps}>
+              {[
+                { label: "1. Compile", desc: "Formulate prompt keywords" },
+                { label: "2. Queue", desc: "Allocate render slot" },
+                { label: "3. Render", desc: "Generate frames" },
+                { label: "4. Cache", desc: "Sync to Storage" }
+              ].map((step, idx) => {
+                const stepNum = idx + 1;
+                const isCompleted = activeStep > stepNum || (activeStep === 4 && stepNum === 4);
+                const isActive = activeStep === stepNum;
+                
+                return (
+                  <div key={idx} className={styles.flowStep}>
+                    <div
+                      className={`${styles.stepIcon} ${
+                        isActive ? styles.stepIconActive : ""
+                      } ${isCompleted ? styles.stepIconCompleted : ""}`}
+                    >
+                      {isCompleted ? "✓" : stepNum}
+                    </div>
+                    <div
+                      className={`${styles.stepLabel} ${
+                        isActive ? styles.stepLabelActive : ""
+                      } ${isCompleted ? styles.stepLabelCompleted : ""}`}
+                    >
+                      {step.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* History Gallery */}
+        {history.length > 0 && (
+          <div className={styles.historySection}>
+            <h2 className={styles.historyTitle}>Flow Gallery</h2>
+            <div className={styles.historyGrid}>
+              {history.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  className={styles.historyCard}
+                  onClick={() => {
+                    setActiveVideoUrl(item.videoUrl);
+                    if (videoRef.current) {
+                      videoRef.current.load();
+                    }
+                  }}
+                >
+                  <div className={styles.historyThumb}>
+                    <video
+                      className={styles.historyThumbVideo}
+                      src={item.videoUrl}
+                      muted
+                      playsInline
+                    />
+                  </div>
+                  <div className={styles.historyBody}>
+                    <p className={styles.historyPrompt}>{item.prompt}</p>
+                    <span style={{ fontSize: "var(--text-xxs)", color: "var(--color-text-muted)", display: "block", marginTop: "4px" }}>
+                      🎥 {item.aspectRatio} • {item.style}
+                    </span>
+                    <button
+                      className={styles.reusePromptBtn}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const promptText = item.prompt;
+                        const match = promptText.match(/(.*) with (pan|tilt|dolly|tracking|zoom|static) camera movement at (slow|medium|fast) speed\./);
+                        
+                        if (match) {
+                          setPrompt(match[1].trim());
+                          setCameraMovement(match[2]);
+                          setMovementSpeed(match[3]);
+                        } else {
+                          const parts = promptText.split(" with ");
+                          setPrompt(parts[0].trim());
+                        }
+
+                        if (item.aspectRatio) setAspectRatio(item.aspectRatio);
+                        if (item.style) setSelectedStyle(item.style);
+                        
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      🔄 Reuse Prompt
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
