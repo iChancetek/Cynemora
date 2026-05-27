@@ -13,6 +13,18 @@ function getAdminApp(): App {
     return getApps()[0];
   }
 
+  let storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+  if (process.env.FIREBASE_CONFIG) {
+    try {
+      const parsed = JSON.parse(process.env.FIREBASE_CONFIG);
+      if (parsed.storageBucket) {
+        storageBucket = parsed.storageBucket;
+      }
+    } catch (e) {
+      console.error("Failed to parse FIREBASE_CONFIG in admin", e);
+    }
+  }
+
   // If service account env variables are present (e.g., local development), use cert.
   // Otherwise, fall back to Application Default Credentials (ADC) which Firebase App Hosting provides natively.
   if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
@@ -22,13 +34,13 @@ function getAdminApp(): App {
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
       }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      storageBucket,
     });
   }
 
   // Standard initialization for Google Cloud environment (App Hosting)
   return initializeApp({
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    storageBucket,
   });
 }
 
