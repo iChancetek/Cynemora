@@ -22,6 +22,7 @@ interface FlowVideo {
   movement: string;
   videoUrl: string;
   createdAt: any;
+  deletedAt?: string;
 }
 
 

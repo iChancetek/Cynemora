@@ -22,6 +22,7 @@ interface FlowVideo {
   movement: string;
   videoUrl: string;
   createdAt: any;
+  deletedAt?: string;
 }
 
 
@@ -82,6 +83,7 @@ export default function FlowPlayground() {
     }, (err) => console.warn("Visual DNA access restricted:", err.message));
 
     async function loadHistory() {
+      if (!user) return;
       try {
         const q = query(
           collection(db, "renders"),
