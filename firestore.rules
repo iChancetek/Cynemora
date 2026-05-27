@@ -2,22 +2,19 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write their own renders
+    // Allow users to read and write renders
     match /renders/{renderId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, write: if request.auth != null;
     }
     
-    // Allow users to read and write their own projects
+    // Allow users to read and write projects
     match /projects/{projectId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, write: if request.auth != null;
     }
 
-    // Allow users to read and write their own characters (Visual DNA)
+    // Allow users to read and write characters (Visual DNA)
     match /visualDna/{dnaId} {
-      allow read, update, delete: if request.auth != null;
-      allow create: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
   }
 }
