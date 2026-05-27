@@ -62,8 +62,7 @@ export default function DashboardPage() {
       try {
         const q = query(
           collection(db, "renders"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
+          where("userId", "==", user.uid)
         );
         const snap = await getDocs(q);
         const items: FlowVideo[] = [];
@@ -81,6 +80,11 @@ export default function DashboardPage() {
               createdAt: d.createdAt?.toDate() || new Date()
             });
           }
+        });
+        items.sort((a, b) => {
+          const timeA = a.createdAt?.getTime() || 0;
+          const timeB = b.createdAt?.getTime() || 0;
+          return timeB - timeA;
         });
         
         setHistory(items);

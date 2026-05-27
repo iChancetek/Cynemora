@@ -54,8 +54,7 @@ export default function ProjectsPage() {
       try {
         const q = query(
           collection(db, "projects"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
+          where("userId", "==", user.uid)
         );
         const snapshot = await getDocs(q);
         const items: ProjectItem[] = [];
@@ -71,6 +70,12 @@ export default function ProjectsPage() {
             createdAt: data.createdAt?.toDate() || new Date(),
             creditsUsed: data.creditsUsed || 0,
           });
+        });
+
+        items.sort((a, b) => {
+          const timeA = a.createdAt?.getTime() || 0;
+          const timeB = b.createdAt?.getTime() || 0;
+          return timeB - timeA;
         });
 
         // If user has zero projects, show mocks + any guest projects

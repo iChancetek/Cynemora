@@ -239,14 +239,8 @@ export default function FlowPlayground() {
         
         await new Promise((resolve) => setTimeout(resolve, 3000));
         
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
         try {
-          const statusRes = await fetch(`/api/render/status?operationId=${encodeURIComponent(operationId)}&provider=${encodeURIComponent(provider)}`, {
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
+          const statusRes = await fetch(`/api/render/status?operationId=${encodeURIComponent(operationId)}&provider=${encodeURIComponent(provider)}`);
           
           if (!statusRes.ok) continue;
           
@@ -272,8 +266,7 @@ export default function FlowPlayground() {
             }
           }
         } catch (fetchErr) {
-          clearTimeout(timeoutId);
-          console.warn("Status fetch timeout or error, continuing poll...", fetchErr);
+          console.warn("Status fetch error, continuing poll...", fetchErr);
         }
       }
       
