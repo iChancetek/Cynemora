@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Login Page
+   CyneMora — Login Page
    Cinema-grade authentication
    ======================================== */
 
@@ -54,13 +54,13 @@ function LoginForm() {
   return (
     <>
       <Link href="/" className={styles.backLink}>
-        ← Back to Cynemora
+        ← Back to CyneMora
       </Link>
 
       {/* Logo */}
-      <div className={styles.authLogo}>
-        <div className={styles.authLogoMark}>C</div>
-        Cynemora
+      <div className={styles.authLogo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+        <img src="/icon-192x192.png" alt="CyneMora Logo" width={40} height={40} style={{ borderRadius: '10px' }} />
+        CyneMora
       </div>
       <p className={styles.authTagline}>
         Cinema-Native Production OS

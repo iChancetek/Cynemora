@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Projects List Page
+   CyneMora — Projects List Page
    Lists all user cinematic productions
    ======================================== */
 

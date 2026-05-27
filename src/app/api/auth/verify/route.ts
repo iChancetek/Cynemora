@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Session Verification Route
+   CyneMora — Session Verification Route
    Returns current user info from session
    ======================================== */
 

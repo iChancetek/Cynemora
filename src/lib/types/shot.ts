@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Shot & Sequence Types
+   CyneMora — Shot & Sequence Types
    ======================================== */
 
 // ---- Shot ----
@@ -123,6 +123,8 @@ export type RenderStatus =
 
 export interface RenderJob {
   id: string;
+  title?: string;
+  prompt?: string;
   shotId: string;
   projectId: string;
   userId: string;

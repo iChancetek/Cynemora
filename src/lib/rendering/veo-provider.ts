@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Veo 3.1 Render Provider
+   CyneMora — Veo 3.1 Render Provider
    Google Gemini API video generation
    Server-side only
    ======================================== */
@@ -14,10 +14,10 @@ import {
 } from "./provider";
 
 const VEO_CONFIG: RenderProviderConfig = {
-  name: "Google Veo 3.1",
-  model: "veo-3.1-generate-preview",
+  name: "Google Veo 3.1 Lite",
+  model: "veo-3.1-lite",
   maxDuration: 8, // seconds per generation
-  supportedAspectRatios: ["16:9", "9:16", "1:1"],
+  supportedAspectRatios: ["16:9", "9:16"], // Lite only supports landscape and portrait
   supportsAudio: true,
   supportsReferenceImages: true,
   costMultiplier: 1.0,
@@ -35,7 +35,7 @@ const VEO_CONFIG: RenderProviderConfig = {
  * It does NOT own: stories, continuity, orchestration, credits, or project state.
  */
 export class VeoProvider implements RenderProvider {
-  readonly name = "veo-3.1";
+  readonly name = "veo-3.1-lite";
   readonly config = VEO_CONFIG;
   private client: GoogleGenAI;
 
@@ -63,6 +63,15 @@ export class VeoProvider implements RenderProvider {
 
       if (instruction.aspectRatio) {
         generateConfig.aspectRatio = instruction.aspectRatio;
+      }
+
+      if (instruction.duration) {
+        generateConfig.durationSeconds = instruction.duration;
+      }
+
+      if (instruction.resolution) {
+        // Map UI resolution strings to Gemini API expected strings if needed
+        generateConfig.resolution = instruction.resolution;
       }
 
       if (instruction.referenceImages && instruction.referenceImages.length > 0) {

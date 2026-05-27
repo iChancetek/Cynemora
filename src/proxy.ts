@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Proxy (Route Protection)
+   CyneMora — Proxy (Route Protection)
    Next.js 16 replaces middleware.ts with proxy.ts
    Runs before routes render — protects dashboard
    ======================================== */

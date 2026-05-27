@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Firebase Auth Context
+   CyneMora — Firebase Auth Context
    Client-side auth state management
    ======================================== */
 

@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Story Agent API Route
+   CyneMora — Story Agent API Route
    Converts raw input into narrative graphs
    ======================================== */
 

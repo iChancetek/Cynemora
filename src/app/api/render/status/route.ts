@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Render Status API Route
+   CyneMora — Render Status API Route
    Polls render operation status
    ======================================== */
 

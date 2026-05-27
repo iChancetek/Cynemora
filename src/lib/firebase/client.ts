@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Firebase Client SDK
+   CyneMora — Firebase Client SDK
    Client-side initialization
    ======================================== */
 

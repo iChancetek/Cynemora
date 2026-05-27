@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Credit System
+   CyneMora — Credit System
    Provider-independent cost abstraction
    ======================================== */
 
@@ -13,7 +13,7 @@ import {
 /**
  * Calculate credit cost for a generation action.
  * Credits are abstracted from provider pricing —
- * Cynemora sets internal rates independent of Veo/OpenAI costs.
+ * CyneMora sets internal rates independent of Veo/OpenAI costs.
  */
 export function estimateCredits(
   items: { type: CreditUnitType; quantity: number }[],

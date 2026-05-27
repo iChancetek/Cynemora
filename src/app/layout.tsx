@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/lib/firebase/auth-context";
+import AssistantChat from "@/components/AssistantChat";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
-  title: "Cynemora — Cinema-Native Production OS",
+  title: "CyneMora — Cinema-Native Production OS",
   description:
     "Transform stories into structured cinematic productions. AI-powered orchestration, shot-based generation, continuity systems, and persistent identity management. A ChanceTEK LLC company.",
   keywords: [
-    "Cynemora",
+    "CyneMora",
     "AI cinema",
     "cinematic production",
     "video generation",
@@ -18,18 +20,31 @@ export const metadata: Metadata = {
   authors: [{ name: "ChanceTEK LLC" }],
   creator: "ChanceTEK LLC",
   openGraph: {
-    title: "Cynemora — Cinema-Native Production OS",
+    title: "CyneMora — Cinema-Native Production OS",
     description:
       "Transform stories into structured cinematic productions with AI-powered orchestration.",
     url: "https://cynemora.us",
-    siteName: "Cynemora",
+    siteName: "CyneMora",
     type: "website",
+    images: [
+      {
+        url: "/icon-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "CyneMora Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Cynemora — Cinema-Native Production OS",
+    title: "CyneMora — Cinema-Native Production OS",
     description:
       "Transform stories into structured cinematic productions with AI-powered orchestration.",
+    images: ["/icon-512x512.png"],
+  },
+  icons: {
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
   },
   robots: {
     index: true,
@@ -53,7 +68,6 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta
           name="apple-mobile-web-app-status-bar-style"
@@ -61,7 +75,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <AssistantChat />
+          <ThemeToggle />
+        </AuthProvider>
       </body>
     </html>
   );

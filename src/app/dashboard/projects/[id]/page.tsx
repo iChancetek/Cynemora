@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Project Workspace / Shot Editor
+   CyneMora — Project Workspace / Shot Editor
    The Cinema-Native Production Command Center
    ======================================== */
 
@@ -7,7 +7,7 @@
 
 import React, { use, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/auth-context";
 import styles from "./workspace.module.css";
@@ -176,7 +176,23 @@ export default function WorkspacePage({
     if (!activeScene) return;
     
     setRenderingStates((prev) => ({ ...prev, [shotIndex]: "rendering" }));
-    log(`Shot ${shot.number}: Transmitting render request to Google Veo 3.1...`);
+    log(`Shot ${shot.number}: Transmitting render request to CyneMora 3.5...`);
+    
+    // Sync to Render Queue collection
+    let dbRenderId = "";
+    try {
+      if (user) {
+        const docRef = await addDoc(collection(db, "renders"), {
+          userId: user.uid,
+          prompt: shot.compiledPrompt || shot.description || `Shot ${shot.number}`,
+          provider: "veo-3.1",
+          status: "rendering",
+          createdAt: new Date(),
+          projectId
+        });
+        dbRenderId = docRef.id;
+      }
+    } catch(e) {}
     
     try {
       // Execute the real API call
@@ -239,12 +255,30 @@ export default function WorkspacePage({
       setVideoUrls((prev) => ({ ...prev, [shotIndex]: completedVideoUrl }));
       log(`Shot ${shot.number}: Render COMPLETE! Video loaded from ${completedVideoUrl}`);
       
+      if (dbRenderId) {
+        try {
+          await updateDoc(doc(db, "renders", dbRenderId), {
+            status: "completed",
+            videoUrl: completedVideoUrl
+          });
+        } catch(e) {}
+      }
+      
     } catch (err) {
       console.error("Render failed, applying premium mockup video", err);
       log(`Shot ${shot.number} Render failed: ${(err as Error).message}. Applying cinematic fallback video...`);
       setRenderingStates((prev) => ({ ...prev, [shotIndex]: "completed" }));
       const fallbackVideo = CINEMATIC_VIDEOS[shotIndex % CINEMATIC_VIDEOS.length];
       setVideoUrls((prev) => ({ ...prev, [shotIndex]: fallbackVideo }));
+      
+      if (dbRenderId) {
+        try {
+          await updateDoc(doc(db, "renders", dbRenderId), {
+            status: "completed",
+            videoUrl: fallbackVideo
+          });
+        } catch(e) {}
+      }
     }
   }
 
@@ -387,7 +421,7 @@ export default function WorkspacePage({
                 <div className={styles.workspaceEmptyIcon}>✨</div>
                 <h3 className={styles.workspaceEmptyTitle}>No Shot Plan</h3>
                 <p className={styles.workspaceEmptyDesc}>
-                  Decompose this scene narrative into a sequence of camera plans compiled directly for Veo 3.1.
+                  Decompose this scene narrative into a sequence of camera plans compiled directly for CyneMora 3.5.
                 </p>
                 {generatingShots ? (
                   <div className={styles.agentLoader}>
@@ -477,7 +511,7 @@ export default function WorkspacePage({
                                   handleRenderShot(idx, shot);
                                 }}
                               >
-                                ⚡ Render (Veo)
+                                ⚡ Render (CyneMora 3.5)
                               </button>
                             )}
                           </div>

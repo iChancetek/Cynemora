@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Dashboard Layout
+   CyneMora — Dashboard Layout
    Sidebar navigation + main content area
    ======================================== */
 
@@ -86,8 +86,8 @@ export default function DashboardLayout({
       >
         {/* Sidebar Header */}
         <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarLogoMark}>C</div>
-          <span className={styles.sidebarBrand}>Cynemora</span>
+          <img src="/icon-192x192.png" alt="CyneMora Logo" width={32} height={32} style={{ borderRadius: '8px', marginRight: '8px' }} />
+          <span className={styles.sidebarBrand}>CyneMora</span>
         </div>
 
         {/* Navigation */}

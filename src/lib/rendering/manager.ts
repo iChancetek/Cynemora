@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Render Provider Manager
+   CyneMora — Render Provider Manager
    Routes render requests to appropriate providers
    Supports multi-provider strategy
    ======================================== */
@@ -25,7 +25,7 @@ export interface ProviderSelection {
  * - Fallback routing when primary provider is unavailable
  * - Abstracting provider details from the orchestration layer
  *
- * This enables Cynemora to remain provider-independent.
+ * This enables CyneMora to remain provider-independent.
  * Future providers (OpenAI video, Runway, Luma, etc.) are added here.
  */
 export class RenderManager {

@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — New Project Page
+   CyneMora — New Project Page
    Create a new cinematic production
    ======================================== */
 
@@ -159,7 +159,7 @@ export default function NewProjectPage() {
             {method === "concept"
               ? "Describe the core idea, setting, and mood."
               : method === "script"
-              ? "Paste your screenplay. Cynemora will parse the structure."
+              ? "Paste your screenplay. CyneMora will parse the structure."
               : "Write your narrative treatment. Include characters, setting, and plot."}
           </span>
           <textarea

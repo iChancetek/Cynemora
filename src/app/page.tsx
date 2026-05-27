@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Landing Page
+   CyneMora — Landing Page
    ======================================== */
 
 "use client";
@@ -13,7 +13,7 @@ const PIPELINE_STEPS = [
     step: "01",
     icon: "📝",
     title: "Story Input",
-    desc: "Write your story, paste a script, or describe a concept. Cynemora understands narrative at every level.",
+    desc: "Write your story, paste a script, or describe a concept. CyneMora understands narrative at every level.",
   },
   {
     step: "02",
@@ -37,7 +37,7 @@ const PIPELINE_STEPS = [
     step: "05",
     icon: "🎥",
     title: "Cinematic Rendering",
-    desc: "Shots render through Veo 3.1 with continuity context, character state, and cinematic directives.",
+    desc: "Shots render through CyneMora 3.5 with continuity context, character state, and cinematic directives.",
   },
   {
     step: "06",
@@ -88,13 +88,14 @@ export default function LandingPage() {
     <div className={styles.landing}>
       {/* ---- Header ---- */}
       <header className={styles.landingHeader} id="header">
-        <div className={styles.logo}>
-          <div className={styles.logoMark}>C</div>
-          Cynemora
+        <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <img src="/icon-192x192.png" alt="CyneMora Logo" width={32} height={32} style={{ borderRadius: '8px' }} />
+          CyneMora
         </div>
         <nav className={styles.headerNav}>
           <a href="#pipeline" className="btn btn-ghost btn-sm">Features</a>
           <a href="#agents" className="btn btn-ghost btn-sm">Pipeline</a>
+          <Link href="/learn-more" className="btn btn-ghost btn-sm" style={{ color: 'var(--color-primary-light)' }}>Learn More</Link>
           {!loading && user ? (
             <Link href="/dashboard" className="btn btn-primary btn-sm">
               Dashboard
@@ -321,7 +322,13 @@ export default function LandingPage() {
       {/* ---- Footer ---- */}
       <footer className={styles.landingFooter}>
         <div className={styles.footerBrand}>
-          Cynemora <span>— A ChanceTEK LLC Company</span>
+          CyneMora <span>— A ChanceTEK LLC Company</span>
+        </div>
+        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', fontSize: '0.85rem' }}>
+          <Link href="/learn-more" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Learn More</Link>
+          <Link href="/support" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Support</Link>
+          <Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Terms of Service</Link>
+          <Link href="/privacy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Privacy Policy</Link>
         </div>
       </footer>
     </div>

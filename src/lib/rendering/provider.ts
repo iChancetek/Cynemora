@@ -1,11 +1,12 @@
 /* ========================================
-   Cynemora — Render Provider Interface
+   CyneMora — Render Provider Interface
    Provider-abstracted video generation
    ======================================== */
 
 export interface ShotInstruction {
   prompt: string;
   duration?: number;
+  resolution?: "720p" | "1080p";
   aspectRatio?: "16:9" | "9:16" | "1:1";
   style?: string;
   referenceImages?: string[];
@@ -49,7 +50,7 @@ export interface RenderProviderConfig {
 /**
  * Abstract render provider interface.
  * All video generation providers must implement this contract.
- * This ensures Cynemora remains provider-independent.
+ * This ensures CyneMora remains provider-independent.
  */
 export interface RenderProvider {
   readonly name: string;

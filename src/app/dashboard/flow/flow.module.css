@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Text to Video Playground Styles
+   CyneMora — Text to Video Playground Styles
    ======================================== */
 
 .flowPage {
@@ -286,17 +286,68 @@
 }
 
 .historyCard {
+  background: transparent;
+  perspective: 1000px;
+  height: 260px;
+  cursor: pointer;
+}
+
+.historyCardInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.historyCard:hover .historyCardInner {
+  transform: translateY(-2px);
+}
+
+.historyCard.flipped .historyCardInner {
+  transform: rotateY(180deg);
+}
+
+.historyCard.flipped:hover .historyCardInner {
+  transform: rotateY(180deg) translateY(-2px);
+}
+
+.historyCardFront, .historyCardBack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   background: var(--color-bg-glass);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  cursor: pointer;
-  transition: all var(--duration-normal) var(--ease-out);
+  display: flex;
+  flex-direction: column;
 }
 
-.historyCard:hover {
+.historyCardBack {
+  transform: rotateY(180deg);
+  background: var(--color-surface-1);
+  padding: var(--space-4);
   border-color: var(--color-border-active);
-  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.copyPromptArea {
+  flex: 1;
+  background: var(--color-surface-3);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  overflow-y: auto;
+  margin-bottom: var(--space-3);
+  white-space: pre-wrap;
+  user-select: all;
 }
 
 .historyThumb {
@@ -317,6 +368,9 @@
 
 .historyBody {
   padding: var(--space-3);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .historyPrompt {

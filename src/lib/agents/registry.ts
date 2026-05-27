@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Agent Registry
+   CyneMora — Agent Registry
    OpenAI Agents SDK Multi-Agent System
    Server-side only
    ======================================== */
@@ -10,7 +10,7 @@ import { Agent, handoff } from "@openai/agents";
 // Converts raw ideas, scripts, and screenplays into structured narrative graphs
 export const storyAgent = new Agent({
   name: "Story Architect",
-  instructions: `You are Cynemora's Story Architect — the primary intelligence that transforms raw creative input into structured cinematic narrative graphs.
+  instructions: `You are CyneMora's Story Architect — the primary intelligence that transforms raw creative input into structured cinematic narrative graphs.
 
 YOUR ROLE:
 You receive story ideas, prompts, scripts, screenplays, or narrative concepts and convert them into structured production-ready narrative graphs.
@@ -76,7 +76,7 @@ RULES:
 // Decomposes narrative graphs into detailed, production-ready scenes
 export const sceneAgent = new Agent({
   name: "Scene Decomposer",
-  instructions: `You are Cynemora's Scene Decomposer — you take narrative graph scenes and expand them into detailed, production-ready scene breakdowns.
+  instructions: `You are CyneMora's Scene Decomposer — you take narrative graph scenes and expand them into detailed, production-ready scene breakdowns.
 
 YOUR ROLE:
 You receive a scene from the narrative graph and produce a detailed scene breakdown with specific visual, emotional, and production details.
@@ -130,7 +130,7 @@ RULES:
 // Converts scenes into structured cinematic shot plans
 export const shotAgent = new Agent({
   name: "Shot Planner",
-  instructions: `You are Cynemora's Shot Planner — you convert detailed scenes into precise cinematic shot plans.
+  instructions: `You are CyneMora's Shot Planner — you convert detailed scenes into precise cinematic shot plans.
 
 YOUR ROLE:
 You receive a detailed scene breakdown and generate an ordered sequence of cinematic shots that will tell the scene's story visually.
@@ -195,7 +195,7 @@ RULES:
 // Provides directing recommendations and cinematic refinement
 export const directorAgent = new Agent({
   name: "Director",
-  instructions: `You are Cynemora's Director — you review shot plans and provide directing recommendations, pacing improvements, and creative refinements.
+  instructions: `You are CyneMora's Director — you review shot plans and provide directing recommendations, pacing improvements, and creative refinements.
 
 YOUR ROLE:
 You receive shot plans and provide professional directing feedback to elevate the cinematic quality.
@@ -240,7 +240,7 @@ RULES:
 // Translates shot plans into precise camera instructions and cinematic language
 export const cinematographyAgent = new Agent({
   name: "Cinematographer",
-  instructions: `You are Cynemora's Cinematographer — you take directed shot plans and refine them with precise camera instructions, lighting design, and cinematic language.
+  instructions: `You are CyneMora's Cinematographer — you take directed shot plans and refine them with precise camera instructions, lighting design, and cinematic language.
 
 YOUR ROLE:
 You receive shot plans (potentially with director recommendations applied) and produce final camera-ready instructions with rich visual language.
@@ -277,7 +277,7 @@ RULES:
 // Generates persistent character identity profiles
 export const visualDnaAgent = new Agent({
   name: "Visual DNA Architect",
-  instructions: `You are Cynemora's Visual DNA Architect — you create persistent, detailed character identity profiles that ensure consistent character representation across an entire production.
+  instructions: `You are CyneMora's Visual DNA Architect — you create persistent, detailed character identity profiles that ensure consistent character representation across an entire production.
 
 YOUR ROLE:
 You receive character descriptions and create comprehensive Visual DNA profiles.
@@ -330,7 +330,7 @@ RULES:
 // Validates continuity across shots and sequences
 export const continuityAgent = new Agent({
   name: "Continuity Supervisor",
-  instructions: `You are Cynemora's Continuity Supervisor — you ensure consistency across shots, scenes, and sequences to prevent cinematic drift.
+  instructions: `You are CyneMora's Continuity Supervisor — you ensure consistency across shots, scenes, and sequences to prevent cinematic drift.
 
 YOUR ROLE:
 You receive production state (previous shots, character states, environments) and validate that new shots maintain continuity.
@@ -379,7 +379,7 @@ RULES:
 // Converts structured shot data into optimized rendering prompts
 export const promptCompilerAgent = new Agent({
   name: "Prompt Compiler",
-  instructions: `You are Cynemora's Prompt Compiler — you convert structured cinematic shot plans into optimized video generation prompts for AI rendering engines.
+  instructions: `You are CyneMora's Prompt Compiler — you convert structured cinematic shot plans into optimized video generation prompts for AI rendering engines.
 
 YOUR ROLE:
 You receive structured shot data (framing, movement, characters, environment, cinematography) and compile it into a single, highly detailed rendering prompt.
@@ -414,7 +414,7 @@ RULES:
 // Estimates and optimizes credit usage
 export const creditAgent = new Agent({
   name: "Credit Analyst",
-  instructions: `You are Cynemora's Credit Analyst — you estimate generation costs and provide optimization recommendations.
+  instructions: `You are CyneMora's Credit Analyst — you estimate generation costs and provide optimization recommendations.
 
 YOUR ROLE:
 You receive generation plans and estimate credit usage, providing breakdowns and optimization suggestions.
@@ -456,7 +456,7 @@ OUTPUT FORMAT:
 // Quality assurance validation
 export const qaAgent = new Agent({
   name: "Quality Assurance",
-  instructions: `You are Cynemora's QA Agent — you validate the quality and completeness of generated production assets.
+  instructions: `You are CyneMora's QA Agent — you validate the quality and completeness of generated production assets.
 
 YOUR ROLE:
 You review the output of the production pipeline and flag quality issues.

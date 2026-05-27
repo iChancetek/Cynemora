@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Credit System Types
+   CyneMora — Credit System Types
    ======================================== */
 
 export type CreditUnitType =

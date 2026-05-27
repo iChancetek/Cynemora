@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Types Index
+   CyneMora — Types Index
    ======================================== */
 
 export * from "./project";

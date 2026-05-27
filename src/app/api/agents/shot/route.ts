@@ -1,11 +1,11 @@
 /* ========================================
-   Cynemora — Shot Agent API Route
+   CyneMora — Shot Agent API Route
    Decomposes scenes into structured shot plans
    ======================================== */
 
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { run } from "@openai/agents";
+import { run, Agent } from "@openai/agents";
 import { shotAgent } from "@/lib/agents/registry";
 import { adminDb, adminAuth } from "@/lib/firebase/admin";
 
@@ -55,8 +55,30 @@ Mood: ${sceneMood || "Neutral"}
 Characters: ${(sceneCharacters || []).join(", ")}
 `;
 
-    // Execute the Shot Agent
-    const result = await run(shotAgent, shotAgentInput);
+    // Fetch custom agent configurations from Firestore
+    let customInstructions = shotAgent.instructions;
+    if (userId !== "guest") {
+      try {
+        const agentsSnap = await adminDb.collection("agents").where("userId", "==", userId).where("name", "==", "Shot Planner").limit(1).get();
+        if (!agentsSnap.empty) {
+          const agentDoc = agentsSnap.docs[0].data();
+          if (agentDoc.systemPrompt) {
+            customInstructions = agentDoc.systemPrompt;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch custom agent config", e);
+      }
+    }
+
+    // Execute the Shot Agent with customized instructions
+    const activeShotAgent = new Agent({
+      name: shotAgent.name,
+      instructions: customInstructions,
+      model: shotAgent.model
+    });
+
+    const result = await run(activeShotAgent, shotAgentInput);
 
     // Parse the structured output
     let shotPlan;

@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Session API Route
+   CyneMora — Session API Route
    Creates/destroys HTTP-only session cookies
    from Firebase ID tokens
    ======================================== */

@@ -1,13 +1,13 @@
-# Cynemora
+# CyneMora
 
 **Cinema-Native Production Operating System**
 *A ChanceTEK LLC Company — [cynemora.us](https://cynemora.us)*
 
 ---
 
-Cynemora is not a prompt-to-video application.
+CyneMora is not a prompt-to-video application.
 
-Cynemora is a **production-grade, cinema-native AI production operating system** that transforms stories into structured cinematic productions using:
+CyneMora is a **production-grade, cinema-native AI production operating system** that transforms stories into structured cinematic productions using:
 
 - **OpenAI Agents SDK** — Intelligence, orchestration, continuity, and direction
 - **Google Gemini API + Veo 3.1** — Cinematic video rendering

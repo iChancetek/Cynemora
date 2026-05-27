@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Firebase Admin SDK
+   CyneMora — Firebase Admin SDK
    Server-side only — NEVER import on client
    ======================================== */
 

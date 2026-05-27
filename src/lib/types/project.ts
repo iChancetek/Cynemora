@@ -1,10 +1,10 @@
 /* ========================================
-   Cynemora — Core Type Definitions
+   CyneMora — Core Type Definitions
    ======================================== */
 import { Shot } from "./shot";
 
 // ---- Project ----
-export interface CynemoraProject {
+export interface CyneMoraProject {
   id: string;
   userId: string;
   title: string;

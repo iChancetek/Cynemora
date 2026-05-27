@@ -1,5 +1,5 @@
 /* ========================================
-   Cynemora — Render Generation API Route
+   CyneMora — Render Generation API Route
    Server-side video generation through
    provider-abstracted rendering layer
    ======================================== */
@@ -10,7 +10,7 @@ import { getRenderManager } from "@/lib/rendering/manager";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { prompt, aspectRatio, duration, referenceImages, provider } = body;
+    const { prompt, aspectRatio, duration, resolution, referenceImages, provider } = body;
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
         prompt,
         aspectRatio: aspectRatio || "16:9",
         duration: duration || 8,
+        resolution: resolution || "1080p",
         referenceImages: referenceImages || [],
       },
       provider

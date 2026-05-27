@@ -1,6 +1,6 @@
 /* ========================================
-   Cynemora — Dashboard Home
-   Unified, Direct Google Flow-style Video Generation
+   CyneMora — Dashboard Home
+   Unified, Direct Cinematic-style Video Generation
    Simple, Easy, Premium
    ======================================== */
 
@@ -69,7 +69,7 @@ export default function DashboardPage() {
         
         snap.forEach((docSnap) => {
           const d = docSnap.data();
-          if (d.videoUrl) {
+          if (d.videoUrl && !d.deletedAt) {
             items.push({
               id: docSnap.id,
               prompt: d.prompt || "",
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         if (localData) {
           try {
             const parsed = JSON.parse(localData);
-            const formatted = parsed.map((item: any) => ({
+            const formatted = parsed.filter((item: any) => !item.deletedAt).map((item: any) => ({
               ...item,
               createdAt: new Date(item.createdAt)
             }));
@@ -188,16 +188,16 @@ export default function DashboardPage() {
             completedVideoUrl = opStatus.videoUrl || "";
             isDone = true;
           } else if (opStatus.status === "failed") {
-            throw new Error("Google Veo 3.1 rendering pipeline failed");
+            throw new Error("CyneMora 3.5 rendering pipeline failed");
           } else {
             // Update progress steps dynamically in real time
             const progress = opStatus.progress || 50;
             if (progress >= 75) {
               setActiveStep(4);
-              setLogText("Veo 3.1 frame serialization complete. Caching and syncing to Firebase Storage...");
+              setLogText("CyneMora 3.5 frame serialization complete. Caching and syncing to Firebase Storage...");
             } else {
               setActiveStep(3);
-              setLogText(`Veo 3.1 generating cinematic sequences (${progress}% complete)...`);
+              setLogText(`CyneMora 3.5 generating cinematic sequences (${progress}% complete)...`);
             }
           }
         }
@@ -211,16 +211,9 @@ export default function DashboardPage() {
         throw new Error("Rendering complete, but no video URI returned by provider");
       }
 
-      // 3. Direct DOM update to prevent any React state-batching race conditions!
       if (videoRef.current) {
         videoRef.current.src = completedVideoUrl;
         videoRef.current.load();
-        const playPromise = videoRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log("Browser auto-play blocked, waiting for direct user play click:", error.message);
-          });
-        }
       }
 
       setActiveVideoUrl(completedVideoUrl);
@@ -285,7 +278,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Main Google Flow Workspace */}
+      {/* Main CyneMora Workspace */}
       <div className={styles.flowPage}>
         {/* Controls */}
         <div className={styles.controlsPanel}>
@@ -377,7 +370,6 @@ export default function DashboardPage() {
                 className={styles.theaterVideo}
                 src={activeVideoUrl}
                 controls
-                autoPlay
                 loop
               />
             ) : (
@@ -394,7 +386,7 @@ export default function DashboardPage() {
           {(rendering || activeStep > 0) && (
             <div className={styles.statusFlowCard}>
               <div className={styles.flowHeader}>
-                <span className={styles.flowTitle}>GPU Pipeline Flow</span>
+                <span className={styles.flowTitle}>CyneMora Workspace</span>
                 <span style={{ fontSize: "var(--text-xs)", opacity: 0.6 }}>{logText}</span>
               </div>
               <div className={styles.flowSteps}>

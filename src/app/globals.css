@@ -131,6 +131,34 @@
   --max-width-wide: 1440px;
 }
 
+/* ---- Light Mode (Optional) ---- */
+[data-theme="light"] {
+  --color-bg-primary: #f9f9fb;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f0f0f5;
+  --color-bg-elevated: #ffffff;
+  --color-bg-glass: rgba(255, 255, 255, 0.85);
+  --color-bg-glass-light: rgba(255, 255, 255, 0.95);
+
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f4f4f9;
+  --color-surface-3: #ebebf2;
+
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.15);
+  --color-border-active: rgba(167, 139, 250, 0.6);
+
+  --color-text-primary: #0a0a0f;
+  --color-text-secondary: #4a4a5a;
+  --color-text-tertiary: #6b6b80;
+  --color-text-muted: #a0a0b5;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+}
+
 /* ---- Reset & Base ---- */
 *,
 *::before,
