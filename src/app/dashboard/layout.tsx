@@ -27,9 +27,27 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "Tools",
+    label: "Create",
     items: [
       { icon: "⚡", label: "Text to Video", href: "/dashboard/flow" },
+      { icon: "🖼️", label: "Image to Video", href: "/dashboard/image-to-video" },
+      { icon: "🎵", label: "Audio to Video", href: "/dashboard/audio-to-video" },
+      { icon: "📊", label: "PPT to Video", href: "/dashboard/ppt-to-video" },
+    ],
+  },
+  {
+    label: "AI Studio",
+    items: [
+      { icon: "🤖", label: "AI Avatars", href: "/dashboard/avatars" },
+      { icon: "🌍", label: "AI Dubbing", href: "/dashboard/dubbing" },
+      { icon: "🎙️", label: "Podcast Studio", href: "/dashboard/podcast" },
+      { icon: "🎭", label: "Face Swap", href: "/dashboard/face-swap" },
+      { icon: "🌐", label: "Video Translator", href: "/dashboard/translator" },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
       { icon: "🧠", label: "AI Agents", href: "/dashboard/agents" },
       { icon: "🎥", label: "Render Queue", href: "/dashboard/renders" },
       { icon: "🧬", label: "Visual DNA", href: "/dashboard/visual-dna" },

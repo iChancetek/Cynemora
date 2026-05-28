@@ -30,7 +30,7 @@ export interface ProviderSelection {
  */
 export class RenderManager {
   private providers: Map<string, RenderProvider> = new Map();
-  private defaultProvider: string = "veo-3.1";
+  private defaultProvider: string = "veo-2.0-generate-001";
 
   constructor() {
     this.registerDefaultProviders();

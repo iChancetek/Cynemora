@@ -15,7 +15,7 @@ import {
 
 const VEO_CONFIG: RenderProviderConfig = {
   name: "Google Veo 3.1 Lite",
-  model: "veo-3.1-lite",
+  model: "veo-3.1-lite-generate-preview",
   maxDuration: 8, // seconds per generation
   supportedAspectRatios: ["16:9", "9:16"], // Lite only supports landscape and portrait
   supportsAudio: true,
@@ -35,7 +35,7 @@ const VEO_CONFIG: RenderProviderConfig = {
  * It does NOT own: stories, continuity, orchestration, credits, or project state.
  */
 export class VeoProvider implements RenderProvider {
-  readonly name = "veo-3.1-lite";
+  readonly name = "veo-3.1-lite-generate-preview";
   readonly config = VEO_CONFIG;
   private client: GoogleGenAI;
 
@@ -69,10 +69,8 @@ export class VeoProvider implements RenderProvider {
         generateConfig.durationSeconds = instruction.duration;
       }
 
-      if (instruction.resolution) {
-        // Map UI resolution strings to Gemini API expected strings if needed
-        generateConfig.resolution = instruction.resolution;
-      }
+      // Veo 2.0 API handles resolution automatically based on aspect ratio
+      // Do not pass the UI's '1080p' string directly to avoid INVALID_ARGUMENT errors
 
       if (instruction.referenceImages && instruction.referenceImages.length > 0) {
         generateConfig.referenceImages = instruction.referenceImages;
@@ -93,11 +91,7 @@ export class VeoProvider implements RenderProvider {
       };
     } catch (error) {
       console.error("[VeoProvider] Generation failed:", error);
-      return {
-        id: `veo-error-${Date.now()}`,
-        provider: this.name,
-        status: "failed",
-      };
+      throw error;
     }
   }
 

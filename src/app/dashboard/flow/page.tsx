@@ -41,6 +41,79 @@ const CINEMATIC_VIDEOS = [
   "https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4"
 ];
 
+function VideoThumbnail({ src, className }: { src: string, className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (!src || !canvasRef.current) return;
+
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.src = src;
+
+    const onDataLoaded = () => {
+      v.currentTime = 0.5;
+    };
+
+    const onSeeked = () => {
+      const c = canvasRef.current;
+      if (!c) return;
+      c.width = v.videoWidth || 640;
+      c.height = v.videoHeight || 360;
+      const ctx = c.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        setIsLoaded(true);
+      }
+      cleanup();
+    };
+
+    const onError = () => {
+      setHasError(true);
+      cleanup();
+    };
+
+    const cleanup = () => {
+      v.removeAttribute("src");
+      v.load();
+    };
+
+    v.addEventListener("loadeddata", onDataLoaded);
+    v.addEventListener("seeked", onSeeked);
+    v.addEventListener("error", onError);
+
+    return () => {
+      v.removeEventListener("loadeddata", onDataLoaded);
+      v.removeEventListener("seeked", onSeeked);
+      v.removeEventListener("error", onError);
+      cleanup();
+    };
+  }, [src]);
+
+  return (
+    <div className={className} style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--color-surface-2)', overflow: 'hidden' }}>
+      <canvas 
+        ref={canvasRef} 
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: isLoaded ? 'block' : 'none' }} 
+      />
+      {!isLoaded && !hasError && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '20px', height: '20px', border: '2px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+      {hasError && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '24px', opacity: 0.5 }}>🎬</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FlowPlayground() {
   const { user } = useAuth();
   
@@ -203,7 +276,7 @@ export default function FlowPlayground() {
           duration: parseInt(duration),
           resolution,
           referenceImages: refs,
-          provider: "veo-3.1-lite"
+          provider: "veo-3.1-lite-generate-preview"
         })
       });
       
@@ -266,6 +339,9 @@ export default function FlowPlayground() {
             }
           }
         } catch (fetchErr) {
+          if (fetchErr instanceof Error && fetchErr.message === "CyneMora 3.5 rendering pipeline failed") {
+            throw fetchErr;
+          }
           console.warn("Status fetch error, continuing poll...", fetchErr);
         }
       }
@@ -281,7 +357,7 @@ export default function FlowPlayground() {
       // 3. Download and cache to Firebase Storage
       let finalVideoUrl = completedVideoUrl;
       try {
-        if (user && completedVideoUrl.startsWith("http")) {
+        if (user && completedVideoUrl.startsWith("http") && !completedVideoUrl.includes("mixkit.co")) {
           setActiveStep(4);
           setLogText("Uploading cinematic master to Firebase Storage...");
           
@@ -356,7 +432,7 @@ export default function FlowPlayground() {
       
       let finalFallbackUrl = fallbackUrl;
       try {
-        if (user) {
+        if (user && !fallbackUrl.includes("mixkit.co")) {
           setLogText("Caching premium mockup to Firebase Storage...");
           
           const proxyUrl = `/api/render/proxy?url=${encodeURIComponent(fallbackUrl)}`;
@@ -655,6 +731,7 @@ export default function FlowPlayground() {
               src={activeVideoUrl}
               controls
               loop
+              autoPlay
             />
           ) : (
             <div className={styles.theaterPlaceholder}>
@@ -747,18 +824,16 @@ export default function FlowPlayground() {
                       className={styles.historyCardFront}
                       onClick={() => {
                         setActiveVideoUrl(item.videoUrl);
-                        if (videoRef.current) {
-                          videoRef.current.load();
-                        }
+                        setTimeout(() => {
+                          if (videoRef.current) {
+                            videoRef.current.load();
+                            videoRef.current.play().catch(e => console.warn("Autoplay prevented:", e));
+                          }
+                        }, 50);
                       }}
                     >
                       <div className={styles.historyThumb}>
-                        <video
-                          className={styles.historyThumbVideo}
-                          src={item.videoUrl}
-                          muted
-                          playsInline
-                        />
+                        <VideoThumbnail src={item.videoUrl} className={styles.historyThumbVideo} />
                       </div>
                       <div className={styles.historyBody}>
                         {editingTitleId === item.id ? (

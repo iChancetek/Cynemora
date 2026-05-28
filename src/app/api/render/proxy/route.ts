@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
     const fetchHeaders: Record<string, string> = {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       "Accept": "video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Referer": "https://google.com/"
+      "Accept-Language": "en-US,en;q=0.9"
     };
     
     if (isGemini) {
       fetchHeaders["x-goog-api-key"] = process.env.GEMINI_API_KEY || "";
+      fetchHeaders["Referer"] = "https://google.com/";
     }
 
     const response = await fetch(url, { headers: fetchHeaders });

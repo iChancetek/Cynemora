@@ -5,6 +5,7 @@ import AssistantChat from "@/components/AssistantChat";
 import ThemeToggle from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://cynemora.us"),
   title: "CyneMora — Cinema-Native Production OS",
   description:
     "Transform stories into structured cinematic productions. AI-powered orchestration, shot-based generation, continuity systems, and persistent identity management. A ChanceTEK LLC company.",

@@ -185,7 +185,7 @@ export default function WorkspacePage({
         const docRef = await addDoc(collection(db, "renders"), {
           userId: user.uid,
           prompt: shot.compiledPrompt || shot.description || `Shot ${shot.number}`,
-          provider: "veo-3.1",
+          provider: "veo-3.1-lite-generate-preview",
           status: "rendering",
           createdAt: new Date(),
           projectId
@@ -203,7 +203,7 @@ export default function WorkspacePage({
           prompt: shot.compiledPrompt,
           aspectRatio: "16:9",
           duration: shot.duration || 5,
-          provider: "veo-3.1"
+          provider: "veo-3.1-lite-generate-preview"
         })
       });
 

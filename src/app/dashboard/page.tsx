@@ -34,6 +34,79 @@ const PRESETS = [
   { name: "Noir Film", promptAppend: "high-contrast black and white, rain shadows, retro cinematic composition, dramatic silhouettes" }
 ];
 
+function VideoThumbnail({ src, className }: { src: string, className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (!src || !canvasRef.current) return;
+
+    const v = document.createElement("video");
+    v.muted = true;
+    v.playsInline = true;
+    v.src = src;
+
+    const onDataLoaded = () => {
+      v.currentTime = 0.5;
+    };
+
+    const onSeeked = () => {
+      const c = canvasRef.current;
+      if (!c) return;
+      c.width = v.videoWidth || 640;
+      c.height = v.videoHeight || 360;
+      const ctx = c.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        setIsLoaded(true);
+      }
+      cleanup();
+    };
+
+    const onError = () => {
+      setHasError(true);
+      cleanup();
+    };
+
+    const cleanup = () => {
+      v.removeAttribute("src");
+      v.load();
+    };
+
+    v.addEventListener("loadeddata", onDataLoaded);
+    v.addEventListener("seeked", onSeeked);
+    v.addEventListener("error", onError);
+
+    return () => {
+      v.removeEventListener("loadeddata", onDataLoaded);
+      v.removeEventListener("seeked", onSeeked);
+      v.removeEventListener("error", onError);
+      cleanup();
+    };
+  }, [src]);
+
+  return (
+    <div className={className} style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--color-surface-2)', overflow: 'hidden' }}>
+      <canvas 
+        ref={canvasRef} 
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: isLoaded ? 'block' : 'none' }} 
+      />
+      {!isLoaded && !hasError && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '20px', height: '20px', border: '2px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+      {hasError && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '24px', opacity: 0.5 }}>🎬</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   
@@ -150,7 +223,7 @@ export default function DashboardPage() {
           prompt,
           aspectRatio,
           duration: parseInt(duration),
-          provider: "veo-3.1"
+          provider: "veo-3.1-lite-generate-preview"
         })
       });
       
@@ -376,6 +449,7 @@ export default function DashboardPage() {
                 src={activeVideoUrl}
                 controls
                 loop
+                autoPlay
               />
             ) : (
               <div className={styles.theaterPlaceholder}>
@@ -437,13 +511,16 @@ export default function DashboardPage() {
                     className={styles.historyCard}
                     onClick={() => {
                       setActiveVideoUrl(item.videoUrl);
-                      if (videoRef.current) {
-                        videoRef.current.load();
-                      }
+                      setTimeout(() => {
+                        if (videoRef.current) {
+                          videoRef.current.load();
+                          videoRef.current.play().catch(e => console.warn("Autoplay prevented:", e));
+                        }
+                      }, 50);
                     }}
                   >
                     <div className={styles.historyThumb}>
-                      <video className={styles.historyThumbVideo} src={item.videoUrl} muted playsInline />
+                      <VideoThumbnail src={item.videoUrl} className={styles.historyThumbVideo} />
                     </div>
                     <div className={styles.historyBody}>
                       <p className={styles.historyPrompt}>{item.prompt}</p>
