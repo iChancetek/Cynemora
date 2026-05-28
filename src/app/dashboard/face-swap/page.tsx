@@ -242,9 +242,15 @@ export default function FaceSwapPage() {
         <div className={styles.outputArea}>
           <div className={styles.previewBox}>
             {resultVideoUrl ? (
-              <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay />
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay />
+                <div className="cyne-watermark"><img src="/icon-192x192.png" alt="" width={14} height={14} style={{ borderRadius: '2px', opacity: 0.8 }} /> CyneMora</div>
+              </div>
             ) : videoPreview ? (
-              <video className={styles.previewVideo} src={videoPreview} controls muted />
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <video className={styles.previewVideo} src={videoPreview} controls muted />
+                <div className="cyne-watermark"><img src="/icon-192x192.png" alt="" width={14} height={14} style={{ borderRadius: '2px', opacity: 0.8 }} /> CyneMora</div>
+              </div>
             ) : (
               <div className={styles.previewPlaceholder}>
                 <div className={styles.previewPlaceholderIcon}>🎭</div>

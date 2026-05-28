@@ -334,7 +334,10 @@ export default function ImageToVideoPage() {
         <div className={styles.outputArea}>
           <div className={styles.previewBox}>
             {resultVideoUrl ? (
-              <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay />
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay />
+                <div className="cyne-watermark"><img src="/icon-192x192.png" alt="" width={14} height={14} style={{ borderRadius: '2px', opacity: 0.8 }} /> CyneMora</div>
+              </div>
             ) : uploadedImage ? (
               <img src={uploadedImage} className={styles.previewImage} alt="Source" />
             ) : (

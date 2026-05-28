@@ -4,6 +4,7 @@
 
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/firebase/auth-context";
 import styles from "./page.module.css";
@@ -83,9 +84,16 @@ const PREMIUM_FEATURES = [
 
 export default function LandingPage() {
   const { user, loading } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className={styles.landing}>
+      {/* ---- Video Background ---- */}
+      <div className={styles.videoBackground}>
+        <video autoPlay loop muted playsInline src="/cynemora.mp4" />
+        <div className={styles.videoOverlay} />
+      </div>
+
       {/* ---- Header ---- */}
       <header className={styles.newHeader} id="header">
         <div className={styles.newLogo}>
@@ -102,14 +110,45 @@ export default function LandingPage() {
               Sign in ➔
             </Link>
           )}
-          <button className={styles.hamburgerMenu} aria-label="Menu">
+          <button 
+            className={styles.hamburgerMenu} 
+            aria-label="Menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
             <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
+              {isMobileMenuOpen ? (
+                <>
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </>
+              ) : (
+                <>
+                  <line x1="3" y1="12" x2="21" y2="12"></line>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <line x1="3" y1="18" x2="21" y2="18"></line>
+                </>
+              )}
             </svg>
           </button>
         </nav>
+
+        {/* Mobile Dropdown */}
+        {isMobileMenuOpen && (
+          <div className={styles.mobileMenuDropdown}>
+            <Link href="/learn-more" className={styles.mobileNavLink}>Modules</Link>
+            <Link href="/support" className={styles.mobileNavLink}>Support</Link>
+            <div className={styles.mobileNavDivider} />
+            {!loading && user ? (
+              <Link href="/dashboard" className={styles.mobileNavBtnSolid}>
+                Dashboard
+              </Link>
+            ) : (
+              <Link href="/login" className={styles.mobileNavBtnSolid}>
+                Sign in ➔
+              </Link>
+            )}
+          </div>
+        )}
       </header>
 
       {/* ---- Hero ---- */}

@@ -37,8 +37,8 @@ export default function ThemeToggle() {
       title="Toggle Light/Dark Mode"
       style={{
         position: 'fixed',
-        top: '0.75rem',
-        right: '5.5rem',
+        bottom: '1.5rem',
+        left: '1.5rem',
         zIndex: 1000,
         background: 'var(--color-surface-2)',
         color: 'var(--color-text-primary)',

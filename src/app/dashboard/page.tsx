@@ -443,14 +443,39 @@ export default function DashboardPage() {
         <div className={styles.outputArea}>
           <div className={styles.theaterBox}>
             {activeVideoUrl ? (
-              <video
-                ref={videoRef}
-                className={styles.theaterVideo}
-                src={activeVideoUrl}
-                controls
-                loop
-                autoPlay
-              />
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <video
+                  ref={videoRef}
+                  className={styles.theaterVideo}
+                  src={activeVideoUrl}
+                  controls
+                  loop
+                  autoPlay
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '60px', /* Above controls */
+                  right: '20px',
+                  padding: '4px 8px',
+                  background: 'rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(4px)',
+                  borderRadius: '4px',
+                  color: 'rgba(255,255,255,0.7)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  letterSpacing: '1px',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  zIndex: 10,
+                  textTransform: 'uppercase'
+                }}>
+                  <img src="/icon-192x192.png" alt="" width={14} height={14} style={{ borderRadius: '2px', opacity: 0.8 }} />
+                  CyneMora
+                </div>
+              </div>
             ) : (
               <div className={styles.theaterPlaceholder}>
                 <div className={styles.theaterPlaceholderIcon}>🎥</div>

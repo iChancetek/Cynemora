@@ -91,6 +91,12 @@ const TECH_STACK = [
 export default function LearnMorePage() {
   return (
     <div className={styles.landing}>
+      {/* ---- Video Background ---- */}
+      <div className={styles.videoBackground}>
+        <video autoPlay loop muted playsInline src="/cynemora.mp4" />
+        <div className={styles.videoOverlay} />
+      </div>
+
       {/* Header */}
       <header className={styles.landingHeader} id="header">
         <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

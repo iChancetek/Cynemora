@@ -39,7 +39,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, var(--color-bg-primary) 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 15, 0.5) 100%);
 }
 
 .heroGrid {
@@ -537,8 +537,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
+  background: rgba(10, 10, 15, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .newLogo {
@@ -582,9 +584,15 @@
   border: none;
   color: var(--color-text-primary);
   cursor: pointer;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .hamburgerMenu {
+    display: flex;
+  }
 }
 
 .newHero {
@@ -594,7 +602,7 @@
   align-items: center;
   text-align: left;
   padding: calc(var(--header-height) + var(--space-20)) var(--space-6) var(--space-16);
-  background-color: var(--color-bg-primary);
+  background-color: transparent;
 }
 
 .newHeroContent {
@@ -706,3 +714,103 @@
   }
 }
 
+
+/* ---- Mobile Menu Dropdown ---- */
+.mobileMenuDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.2s ease-out forwards;
+  z-index: 99;
+}
+
+@media (min-width: 769px) {
+  .mobileMenuDropdown {
+    display: none !important;
+  }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mobileNavLink {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: var(--space-2) 0;
+  transition: color 0.2s ease;
+}
+
+.mobileNavLink:hover {
+  color: var(--color-primary-light);
+}
+
+.mobileNavDivider {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-2) 0;
+}
+
+.mobileNavBtnSolid {
+  background: var(--color-primary);
+  color: white;
+  text-decoration: none;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+}
+
+.mobileNavBtnSolid:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+}
+
+/* ---- Video Background ---- */
+.videoBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  background: transparent;
+  pointer-events: none;
+}
+
+.videoBackground video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+
+.videoOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(10, 10, 15, 0.3) 0%, rgba(10, 10, 15, 0.9) 100%);
+  z-index: -1;
+}
+
+/* Ensure sections are transparent so video shows through */
+.landing section, .landing header {
+  position: relative;
+  z-index: 1;
+}

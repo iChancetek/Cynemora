@@ -489,3 +489,26 @@ a:hover {
     --text-6xl: 2.25rem;
   }
 }
+
+/* ---- Video Watermark ---- */
+.cyne-watermark {
+  position: absolute;
+  bottom: 60px;
+  right: 20px;
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.7);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  text-transform: uppercase;
+}
