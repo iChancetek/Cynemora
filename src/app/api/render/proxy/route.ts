@@ -17,9 +17,21 @@ export async function GET(request: NextRequest) {
       break;
     }
   }
+
+  // Robustly decode if it's double-encoded
+  while (url.includes("%3A%2F%2F") || url.includes("%3a%2f%2f") || url.startsWith("https%3A")) {
+    url = decodeURIComponent(url);
+  }
   
   if (url.startsWith("/")) {
     return NextResponse.json({ error: "Invalid absolute URL" }, { status: 400 });
+  }
+
+  try {
+    // Validate URL parse
+    new URL(url);
+  } catch (e) {
+    return NextResponse.json({ error: `Invalid URL format: ${url}` }, { status: 400 });
   }
 
   try {
@@ -32,17 +44,27 @@ export async function GET(request: NextRequest) {
     };
     
     if (isGemini) {
-      fetchHeaders["x-goog-api-key"] = process.env.GEMINI_API_KEY || "";
-      fetchHeaders["Referer"] = "https://google.com/";
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (apiKey) {
+        // Use query param for key to avoid header stripping issues in some environments
+        const separator = url.includes("?") ? "&" : "?";
+        url = `${url}${separator}key=${apiKey}`;
+      }
     }
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(url, { headers: fetchHeaders, redirect: 'follow' });
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch remote video: ${response.status} ${response.statusText}`);
+      const errorText = await response.text().catch(() => "Unknown body");
+      console.error(`[API] Proxy remote fetch failed: ${response.status} ${response.statusText} - ${errorText}`);
+      // Return the actual error message to the client so we can debug production issues easily
+      return NextResponse.json({ 
+        error: `Failed to fetch remote video: ${response.status} ${response.statusText}`,
+        details: errorText.substring(0, 500)
+      }, { status: response.status >= 400 ? response.status : 500 });
     }
 
-    // Stream the body directly back to the client to avoid OOM crash or timeouts on large video files
+    // Stream the body directly back to the client
     return new NextResponse(response.body, {
       status: 200,
       headers: {
@@ -51,8 +73,8 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "public, max-age=86400"
       }
     });
-  } catch (error) {
-    console.error("[API] Proxy error:", error);
-    return NextResponse.json({ error: "Failed to proxy video" }, { status: 500 });
+  } catch (error: any) {
+    console.error("[API] Proxy error exception:", error);
+    return NextResponse.json({ error: "Failed to proxy video", details: error.message }, { status: 500 });
   }
 }
