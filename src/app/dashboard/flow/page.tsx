@@ -27,6 +27,26 @@ interface FlowVideo {
 
 
 
+/** Rewrite raw Gemini/Veo URIs to go through our server-side proxy */
+function proxyVideoUrl(url: string): string {
+  if (!url) return url;
+  
+  let rawUrl = url;
+  while (true) {
+    const idx = rawUrl.indexOf("/api/render/proxy?url=");
+    if (idx !== -1) {
+      rawUrl = decodeURIComponent(rawUrl.substring(idx + "/api/render/proxy?url=".length));
+    } else {
+      break;
+    }
+  }
+
+  if (rawUrl.includes("generativelanguage.googleapis.com")) {
+    return `/api/render/proxy?url=${encodeURIComponent(rawUrl)}`;
+  }
+  return rawUrl;
+}
+
 const PRESETS = [
   { name: "Cinematic", promptAppend: "dark moody lighting, cinematic composition, award-winning cinematography, hyper-realistic, shot on 35mm" },
   { name: "Cyberpunk", promptAppend: "rain-slicked neon street, wet reflections, pink and cyan hues, blade runner style" },
@@ -175,7 +195,7 @@ export default function FlowPlayground() {
               style: d.style || "custom",
               aspectRatio: d.aspectRatio || "16:9",
               movement: d.movement || "static",
-              videoUrl: d.videoUrl,
+              videoUrl: proxyVideoUrl(d.videoUrl),
               createdAt: d.createdAt?.toDate() || new Date()
             });
           }
@@ -204,6 +224,7 @@ export default function FlowPlayground() {
             const parsed = JSON.parse(localData);
             const formatted = parsed.filter((item: any) => !item.deletedAt).map((item: any) => ({
               ...item,
+              videoUrl: proxyVideoUrl(item.videoUrl),
               createdAt: new Date(item.createdAt)
             }));
             setHistory(formatted);
@@ -357,12 +378,13 @@ export default function FlowPlayground() {
       // 3. Download and cache to Firebase Storage
       let finalVideoUrl = completedVideoUrl;
       try {
-        if (user && completedVideoUrl.startsWith("http") && !completedVideoUrl.includes("commondatastorage.googleapis.com")) {
+        const isGeminiOrProxy = completedVideoUrl.includes("generativelanguage.googleapis.com") || completedVideoUrl.includes("/api/render/proxy");
+        if (user && isGeminiOrProxy && !completedVideoUrl.includes("commondatastorage.googleapis.com")) {
           setActiveStep(4);
           setLogText("Uploading cinematic master to Firebase Storage...");
           
-          // Use proxy to bypass CORS
-          const proxyUrl = `/api/render/proxy?url=${encodeURIComponent(completedVideoUrl)}`;
+          // Use proxy helper to get a sanitized, single-wrapped proxy URL for download
+          const proxyUrl = proxyVideoUrl(completedVideoUrl);
           const videoRes = await fetch(proxyUrl);
           
           if (videoRes.ok) {
@@ -379,7 +401,7 @@ export default function FlowPlayground() {
         console.warn("Failed to upload to Firebase Storage, using original remote URL", uploadErr);
       }
 
-      setActiveVideoUrl(finalVideoUrl);
+      setActiveVideoUrl(proxyVideoUrl(finalVideoUrl));
 
       // 4. Save metadata to Firestore database
       let docId = `render_${Date.now()}`;
@@ -390,7 +412,7 @@ export default function FlowPlayground() {
         style: selectedStyle || "custom",
         aspectRatio,
         movement: `${cameraMovement} (${movementSpeed})`,
-        videoUrl: finalVideoUrl,
+        videoUrl: proxyVideoUrl(finalVideoUrl),
         createdAt: new Date()
       };
 
@@ -402,7 +424,7 @@ export default function FlowPlayground() {
             style: selectedStyle || "custom",
             aspectRatio,
             movement: `${cameraMovement} (${movementSpeed})`,
-            videoUrl: finalVideoUrl,
+            videoUrl: proxyVideoUrl(finalVideoUrl),
             createdAt: new Date(),
             status: "completed"
           });

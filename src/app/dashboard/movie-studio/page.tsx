@@ -85,8 +85,13 @@ function proxyVideoUrl(url: string): string {
   if (!url) return url;
   
   let rawUrl = url;
-  while (rawUrl.startsWith("/api/render/proxy?url=")) {
-    rawUrl = decodeURIComponent(rawUrl.substring("/api/render/proxy?url=".length));
+  while (true) {
+    const idx = rawUrl.indexOf("/api/render/proxy?url=");
+    if (idx !== -1) {
+      rawUrl = decodeURIComponent(rawUrl.substring(idx + "/api/render/proxy?url=".length));
+    } else {
+      break;
+    }
   }
 
   if (rawUrl.includes("generativelanguage.googleapis.com")) {

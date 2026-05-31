@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const url = searchParams.get("url");
+  let url = searchParams.get("url");
 
   if (!url) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
+  }
+
+  // Iteratively unwrap any proxy prefixes (absolute or relative)
+  while (true) {
+    const proxyIdx = url.indexOf("/api/render/proxy?url=");
+    if (proxyIdx !== -1) {
+      url = decodeURIComponent(url.substring(proxyIdx + "/api/render/proxy?url=".length));
+    } else {
+      break;
+    }
   }
   
   if (url.startsWith("/")) {
