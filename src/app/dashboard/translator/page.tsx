@@ -123,7 +123,7 @@ export default function TranslatorPage() {
       console.error("[Translator] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4");
+      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4");
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);

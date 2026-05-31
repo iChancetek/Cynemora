@@ -120,7 +120,7 @@ export default function FaceSwapPage() {
       console.error("[Face Swap] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-astronaut-exploring-a-new-planet-31359-large.mp4");
+      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4");
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);

@@ -168,7 +168,7 @@ export default function AudioToVideoPage() {
       setLogText("Switching to cinematic fallback...");
       setActiveStep(4);
 
-      const fallbackUrl = "https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-neon-city-street-wet-rain-44589-large.mp4";
+      const fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4";
       setResultVideoUrl(fallbackUrl);
 
       if (user) {

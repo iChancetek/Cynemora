@@ -116,7 +116,7 @@ export default function PodcastPage() {
       console.error("[Podcast] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-neon-city-street-wet-rain-44589-large.mp4");
+      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4");
     } finally {
       setGenerating(false);
       setTimeout(() => setActiveStep(0), 3000);

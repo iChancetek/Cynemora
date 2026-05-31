@@ -113,7 +113,7 @@ export default function DubbingPage() {
       console.error("[Dubbing] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4");
+      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);

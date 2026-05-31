@@ -25,6 +25,13 @@ interface FlowVideo {
   deletedAt?: string;
 }
 
+/** Rewrite raw Gemini URIs to go through our server-side proxy */
+function proxyVideoUrl(url: string): string {
+  if (url && url.includes("generativelanguage.googleapis.com")) {
+    return `/api/render/proxy?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
 
 
 const PRESETS = [
@@ -125,7 +132,12 @@ export default function DashboardPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  const greeting = getGreeting();
+  const [greeting, setGreeting] = useState("Good day");
+  
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
+
   const firstName = user?.displayName?.split(" ")[0] || "Creator";
 
   // Load history from Firestore
@@ -149,7 +161,7 @@ export default function DashboardPage() {
               style: d.style || "custom",
               aspectRatio: d.aspectRatio || "16:9",
               movement: d.movement || "static",
-              videoUrl: d.videoUrl,
+              videoUrl: proxyVideoUrl(d.videoUrl),
               createdAt: d.createdAt?.toDate() || new Date()
             });
           }
@@ -172,6 +184,7 @@ export default function DashboardPage() {
             const parsed = JSON.parse(localData);
             const formatted = parsed.filter((item: any) => !item.deletedAt).map((item: any) => ({
               ...item,
+              videoUrl: proxyVideoUrl(item.videoUrl),
               createdAt: new Date(item.createdAt)
             }));
             setHistory(formatted);

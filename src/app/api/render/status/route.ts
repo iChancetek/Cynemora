@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
 
     if (provider === "mock-cinematic-provider") {
       const CINEMATIC_VIDEOS = [
-        "https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-astronaut-exploring-a-new-planet-31359-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-neon-city-street-wet-rain-44589-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4"
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
       ];
       return NextResponse.json({
         success: true,
@@ -40,6 +40,14 @@ export async function GET(request: NextRequest) {
 
     const manager = getRenderManager();
     const status = await manager.checkStatus(operationId, provider);
+
+    // Rewrite authenticated Gemini URIs to go through our server-side proxy.
+    // The browser's <video> element cannot add API key headers, so direct
+    // generativelanguage.googleapis.com URIs always fail with
+    // "no supported source was found". The proxy route adds the key server-side.
+    if (status.videoUrl && status.videoUrl.includes("generativelanguage.googleapis.com")) {
+      status.videoUrl = `/api/render/proxy?url=${encodeURIComponent(status.videoUrl)}`;
+    }
 
     return NextResponse.json({
       success: true,

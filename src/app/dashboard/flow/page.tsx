@@ -35,10 +35,10 @@ const PRESETS = [
 ];
 
 const CINEMATIC_VIDEOS = [
-  "https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-astronaut-exploring-a-new-planet-31359-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-neon-city-street-wet-rain-44589-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4"
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
 ];
 
 function VideoThumbnail({ src, className }: { src: string, className?: string }) {
@@ -357,7 +357,7 @@ export default function FlowPlayground() {
       // 3. Download and cache to Firebase Storage
       let finalVideoUrl = completedVideoUrl;
       try {
-        if (user && completedVideoUrl.startsWith("http") && !completedVideoUrl.includes("mixkit.co")) {
+        if (user && completedVideoUrl.startsWith("http") && !completedVideoUrl.includes("commondatastorage.googleapis.com")) {
           setActiveStep(4);
           setLogText("Uploading cinematic master to Firebase Storage...");
           
@@ -432,7 +432,7 @@ export default function FlowPlayground() {
       
       let finalFallbackUrl = fallbackUrl;
       try {
-        if (user && !fallbackUrl.includes("mixkit.co")) {
+        if (user && !fallbackUrl.includes("commondatastorage.googleapis.com")) {
           setLogText("Caching premium mockup to Firebase Storage...");
           
           const proxyUrl = `/api/render/proxy?url=${encodeURIComponent(fallbackUrl)}`;

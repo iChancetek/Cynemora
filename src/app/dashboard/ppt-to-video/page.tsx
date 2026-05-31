@@ -154,7 +154,7 @@ export default function PPTToVideoPage() {
       console.error("[PPT-to-Video] Error:", err);
       setLogText("Switching to cinematic fallback...");
       setActiveStep(4);
-      const fallbackUrl = "https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4";
+      const fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
       setResultVideoUrl(fallbackUrl);
 
       if (user) {

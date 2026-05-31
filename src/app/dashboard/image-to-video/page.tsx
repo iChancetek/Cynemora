@@ -171,8 +171,8 @@ export default function ImageToVideoPage() {
       setActiveStep(4);
 
       const fallbackUrls = [
-        "https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
       ];
       const fallbackUrl = fallbackUrls[Math.floor(Math.random() * fallbackUrls.length)];
       setResultVideoUrl(fallbackUrl);

@@ -197,8 +197,9 @@
 
 .sectionDescription {
   font-size: var(--text-lg);
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   line-height: var(--leading-relaxed);
+  font-weight: 500;
 }
 
 .pipelineGrid {
@@ -630,11 +631,11 @@
 
 .newHeroSubtitle {
   font-size: var(--text-xl);
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   max-width: 800px;
   line-height: 1.5;
   margin-bottom: var(--space-6);
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .newHeroActions {

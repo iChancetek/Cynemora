@@ -51,10 +51,10 @@ interface ProjectData {
 }
 
 const CINEMATIC_VIDEOS = [
-  "https://assets.mixkit.co/videos/preview/mixkit-dramatic-moon-and-clouds-at-night-42289-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-astronaut-exploring-a-new-planet-31359-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-neon-city-street-wet-rain-44589-large.mp4",
-  "https://assets.mixkit.co/videos/preview/mixkit-mysterious-foggy-forest-with-shafts-of-sunlight-41589-large.mp4"
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
 ];
 
 export default function WorkspacePage({
@@ -231,19 +231,21 @@ export default function WorkspacePage({
         await new Promise((resolve) => setTimeout(resolve, 3000));
         
         log(`Shot ${shot.number}: Polling render status (attempt ${attempts})...`);
-        const statusRes = await fetch(`/api/render/status?operationId=${encodeURIComponent(operationId)}&provider=veo-3.1`);
+        const statusRes = await fetch(`/api/render/status?operationId=${encodeURIComponent(operationId)}&provider=${encodeURIComponent(data.operation?.provider || "veo-3.1-lite-generate-preview")}`);
         if (!statusRes.ok) {
           throw new Error("Failed to check render status.");
         }
         
         const statusData = await statusRes.json();
-        const status = statusData.status;
+        const opStatus = statusData.operation;
         
-        if (status === "COMPLETED" || status === "SUCCEEDED" || statusData.videoUrl) {
-          completedVideoUrl = statusData.videoUrl || (statusData.operation?.output?.videoUrl);
-          isDone = true;
-        } else if (status === "FAILED") {
-          throw new Error("Render operation failed on provider side.");
+        if (opStatus) {
+          if (opStatus.status === "completed") {
+            completedVideoUrl = opStatus.videoUrl || "";
+            isDone = true;
+          } else if (opStatus.status === "failed") {
+            throw new Error("Render operation failed on provider side.");
+          }
         }
       }
 
