@@ -27,10 +27,17 @@ interface FlowVideo {
 
 /** Rewrite raw Gemini URIs to go through our server-side proxy */
 function proxyVideoUrl(url: string): string {
-  if (url && url.includes("generativelanguage.googleapis.com")) {
-    return `/api/render/proxy?url=${encodeURIComponent(url)}`;
+  if (!url) return url;
+  
+  let rawUrl = url;
+  while (rawUrl.startsWith("/api/render/proxy?url=")) {
+    rawUrl = decodeURIComponent(rawUrl.substring("/api/render/proxy?url=".length));
   }
-  return url;
+
+  if (rawUrl.includes("generativelanguage.googleapis.com")) {
+    return `/api/render/proxy?url=${encodeURIComponent(rawUrl)}`;
+  }
+  return rawUrl;
 }
 
 

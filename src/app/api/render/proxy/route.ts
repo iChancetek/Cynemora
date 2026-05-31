@@ -7,6 +7,10 @@ export async function GET(request: NextRequest) {
   if (!url) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
+  
+  if (url.startsWith("/")) {
+    return NextResponse.json({ error: "Invalid absolute URL" }, { status: 400 });
+  }
 
   try {
     const isGemini = url.includes("generativelanguage.googleapis.com");

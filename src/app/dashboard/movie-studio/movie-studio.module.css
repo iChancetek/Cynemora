@@ -564,8 +564,8 @@
   background: transparent;
   outline: none;
   cursor: pointer;
-  writing-mode: bt-lr; /* IE */
-  -webkit-appearance: slider-vertical; /* Webkit */
+  writing-mode: vertical-lr;
+  direction: rtl;
 }
 
 .faderInput::-webkit-slider-thumb {

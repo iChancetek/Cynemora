@@ -82,10 +82,17 @@ interface ProjectData {
 
 /** Rewrite raw Gemini/Veo URIs to go through our server-side proxy */
 function proxyVideoUrl(url: string): string {
-  if (url && url.includes("generativelanguage.googleapis.com")) {
-    return `/api/render/proxy?url=${encodeURIComponent(url)}`;
+  if (!url) return url;
+  
+  let rawUrl = url;
+  while (rawUrl.startsWith("/api/render/proxy?url=")) {
+    rawUrl = decodeURIComponent(rawUrl.substring("/api/render/proxy?url=".length));
   }
-  return url;
+
+  if (rawUrl.includes("generativelanguage.googleapis.com")) {
+    return `/api/render/proxy?url=${encodeURIComponent(rawUrl)}`;
+  }
+  return rawUrl;
 }
 
 export default function MovieStudioPage() {
@@ -412,7 +419,10 @@ export default function MovieStudioPage() {
     if (videoPlayerRef.current && selectedClip) {
       const clipProgress = currentTime - selectedClip.start;
       if (clipProgress >= 0 && clipProgress < selectedClip.duration) {
-        videoPlayerRef.current.currentTime = clipProgress % videoPlayerRef.current.duration;
+        const duration = videoPlayerRef.current.duration;
+        if (Number.isFinite(duration) && duration > 0) {
+          videoPlayerRef.current.currentTime = clipProgress % duration;
+        }
       }
     }
   }, [currentTime, selectedClip]);
@@ -975,7 +985,7 @@ export default function MovieStudioPage() {
                 <div className={styles.agentCard} style={{ padding: "12px" }}>
                   <span className={styles.agentName}>🎬 AI Director</span>
                   <p className={styles.agentThought} style={{ margin: "4px 0 0 0" }}>
-                    "Your sequence looks great! To keep it simple, just add video scenes in chronological order on your storyboard below."
+                    &quot;Your sequence looks great! To keep it simple, just add video scenes in chronological order on your storyboard below.&quot;
                   </p>
                 </div>
 
@@ -1251,7 +1261,7 @@ export default function MovieStudioPage() {
                 background: "rgba(0,0,0,0.1)"
               }}>
                 <span style={{ fontSize: "24px", display: "block", marginBottom: "8px" }}>📥</span>
-                <span>Your Storyboard is empty! <strong>Tap past videos in your library below</strong>, or click the glowing <strong>'Quick Import'</strong> button to construct your film sequence!</span>
+                <span>Your Storyboard is empty! <strong>Tap past videos in your library below</strong>, or click the glowing <strong>&apos;Quick Import&apos;</strong> button to construct your film sequence!</span>
               </div>
             ) : (
               <div style={{ display: "flex", gap: "12px", overflowX: "auto", padding: "4px 0", minHeight: "110px" }}>
