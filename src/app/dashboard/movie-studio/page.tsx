@@ -384,7 +384,10 @@ export default function MovieStudioPage() {
     let timerId: NodeJS.Timeout;
     if (isPlaying) {
       if (videoPlayerRef.current) {
-        videoPlayerRef.current.play().catch(() => {});
+        const dur = videoPlayerRef.current.duration;
+        if (Number.isFinite(dur) && dur > 0) {
+          videoPlayerRef.current.play().catch(() => {});
+        }
       }
       timerId = setInterval(() => {
         setCurrentTime((prev) => {
@@ -421,7 +424,10 @@ export default function MovieStudioPage() {
       if (clipProgress >= 0 && clipProgress < selectedClip.duration) {
         const duration = videoPlayerRef.current.duration;
         if (Number.isFinite(duration) && duration > 0) {
-          videoPlayerRef.current.currentTime = clipProgress % duration;
+          const seekTo = clipProgress % duration;
+          if (Number.isFinite(seekTo)) {
+            videoPlayerRef.current.currentTime = seekTo;
+          }
         }
       }
     }
