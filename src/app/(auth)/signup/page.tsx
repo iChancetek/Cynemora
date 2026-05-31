@@ -19,14 +19,30 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleEmailSubmit(e: FormEvent) {
     e.preventDefault();
     clearError();
+    setValidationError(null);
+
+    if (!name.trim()) {
+      setValidationError("Full name is required.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setValidationError("Passwords do not match.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await signUpWithEmail(email, password, name);
+      await signUpWithEmail(email, password, name.trim());
       router.push("/dashboard");
     } catch {
       // Error is handled by auth context
@@ -37,6 +53,7 @@ export default function SignupPage() {
 
   async function handleGoogleSignIn() {
     clearError();
+    setValidationError(null);
     setSubmitting(true);
     try {
       await signInWithGoogle();
@@ -49,6 +66,7 @@ export default function SignupPage() {
   }
 
   const isLoading = loading || submitting;
+  const displayError = error || validationError;
 
   return (
     <div className={styles.authPage}>
@@ -111,7 +129,7 @@ export default function SignupPage() {
         </div>
 
         {/* Error Display */}
-        {error && <div className={styles.authError}>{error}</div>}
+        {displayError && <div className={styles.authError}>{displayError}</div>}
 
         {/* Email Form */}
         <form className={styles.authForm} onSubmit={handleEmailSubmit}>
@@ -152,17 +170,86 @@ export default function SignupPage() {
             <label htmlFor="password" className={styles.authLabel}>
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              className={styles.authInput}
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                className={styles.authInput}
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                style={{ paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255,255,255,0.4)",
+                  cursor: "pointer",
+                  fontSize: "15px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px",
+                  outline: "none"
+                }}
+                tabIndex={-1}
+              >
+                {showPassword ? "👁️" : "🙈"}
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.authFieldGroup}>
+            <label htmlFor="confirmPassword" className={styles.authLabel}>
+              Confirm Password
+            </label>
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                className={styles.authInput}
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                style={{ paddingRight: "40px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255,255,255,0.4)",
+                  cursor: "pointer",
+                  fontSize: "15px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "4px",
+                  outline: "none"
+                }}
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? "👁️" : "🙈"}
+              </button>
+            </div>
           </div>
 
           <button

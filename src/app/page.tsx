@@ -154,6 +154,10 @@ export default function LandingPage() {
       {/* ---- Hero ---- */}
       <section className={styles.newHero} id="hero">
         <div className={styles.newHeroContent}>
+          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center", background: "rgba(56, 189, 248, 0.08)", border: "1px solid rgba(56, 189, 248, 0.2)", borderRadius: "var(--radius-full)", padding: "5px 14px", color: "#38bdf8", fontSize: "11px", fontWeight: 700, marginBottom: "var(--space-4)", fontFamily: "var(--font-mono)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+            🎁 FREE TRIAL ACTIVE: 2 CINEMATIC VIDEOS INCLUDED
+          </div>
+
           <h1 className={styles.newHeroTitle}>
             Turn your ideas <br />
             into <span className={styles.textCyan}>videos in</span> <br />
@@ -172,12 +176,17 @@ export default function LandingPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
               </svg>
-              Sign up with Google
+              Start Trial with Google
             </Link>
             <Link href={user ? "/dashboard/new" : "/signup"} className={styles.newBtnCyan}>
               Get Started for Free
             </Link>
           </div>
+
+          <p style={{ marginTop: "var(--space-4)", fontSize: "11px", color: "var(--color-text-muted)", opacity: 0.8, fontFamily: "var(--font-body)", lineHeight: "1.5" }}>
+            🔒 **No credit card required**. Start your free trial instantly. Includes **2 video generation slots** (up to **8 seconds** each) <br />
+            with secure multi-IP abuse checks and mandatory email verification.
+          </p>
         </div>
       </section>
 

@@ -17,15 +17,17 @@ COMPLETE FEATURE SUITE:
 
 4. **PPT to Video** (/dashboard/ppt-to-video): Convert PowerPoint, Keynote, or PDF presentations into narrated cinematic videos. Features AI-generated narration with 5 voice styles, animated transitions, background music, and intelligent pacing control.
 
-5. **AI Avatars** (/dashboard/avatars): Create ultra-realistic AI digital humans. 8 avatar types: Presenter, Educator, Influencer, AI Actor, Digital Twin, Assistant, Podcast Host, Support Agent. Configure personality, voice, language, and script. Supports reference photo uploads for custom avatars.
+5. **Movie Studio** (/dashboard/movie-studio): A Hollywood-grade Non-Linear Editor (NLE) and Cinematic Timeline Studio that enables filmmakers to stitch hundreds or thousands of short 8-second CyneMora clips into a seamless, feature-length cinematic production. Includes zoomable multi-track timeline controls (V1-V4, Audio, VFX, Subtitle tracks), professional color grading LUTs (Noir, Cyberpunk, Sci-Fi), a vertical foley sound mixer, and the One-Click AI Movie Builder to stitch scenes under active story continuity constraints.
 
-6. **AI Dubbing** (/dashboard/dubbing): Dub videos into 12 languages (Spanish, French, German, Portuguese, Japanese, Korean, Chinese, Hindi, Arabic, Italian, Russian, Turkish). Features AI voice cloning, lip sync adaptation, emotion preservation, and accent adaptation.
+6. **AI Avatars** (/dashboard/avatars): Create ultra-realistic AI digital humans. 8 avatar types: Presenter, Educator, Influencer, AI Actor, Digital Twin, Assistant, Podcast Host, Support Agent. Configure personality, voice, language, and script. Supports reference photo uploads for custom avatars.
 
-7. **Podcast Studio** (/dashboard/podcast): Generate professional podcasts autonomously. 8 categories (Business, Educational, Storytelling, Interview, Fiction, News, Comedy, Tech). 4 host formats (Solo, Duo, Interview, Panel). AI handles scripting, voice generation, editing, sound design, and mastering.
+7. **AI Dubbing** (/dashboard/dubbing): Dub videos into 12 languages (Spanish, French, German, Portuguese, Japanese, Korean, Chinese, Hindi, Arabic, Italian, Russian, Turkish). Features AI voice cloning, lip sync adaptation, emotion preservation, and accent adaptation.
 
-8. **Face Swap** (/dashboard/face-swap): Cinematic-quality face replacement. Upload source video + target face photo. 3 quality tiers. Enhancements include skin tone matching, lighting adaptation, expression preservation, motion blending, age adaptation, and makeup transfer.
+8. **Podcast Studio** (/dashboard/podcast): Generate professional podcasts autonomously. 8 categories (Business, Educational, Storytelling, Interview, Fiction, News, Comedy, Tech). 4 host formats (Solo, Duo, Interview, Panel). AI handles scripting, voice generation, editing, sound design, and mastering.
 
-9. **Video Translator** (/dashboard/translator): Translate videos into 15+ languages while preserving vocal identity, emotional tone, and lip synchronization. Options for burned-in subtitles, SRT export, and voice identity preservation.
+9. **Face Swap** (/dashboard/face-swap): Cinematic-quality face replacement. Upload source video + target face photo. 3 quality tiers. Enhancements include skin tone matching, lighting adaptation, expression preservation, motion blending, age adaptation, and makeup transfer.
+
+10. **Video Translator** (/dashboard/translator): Translate videos into 15+ languages while preserving vocal identity, emotional tone, and lip synchronization. Options for burned-in subtitles, SRT export, and voice identity preservation.
 
 AI AGENT NETWORK:
 12 specialized agents work behind the scenes: Story Architect, Scene Decomposer, Shot Planner, Director Agent, Cinematography Agent, Visual DNA Agent, Continuity Supervisor, Render Agent, QA Agent, Credit Agent, Localization Agent, and Podcast Agent.

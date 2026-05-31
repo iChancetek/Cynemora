@@ -19,8 +19,8 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   { label: "Text to Video", icon: "⚡", href: "/dashboard/flow" },
   { label: "Image to Video", icon: "🖼️", href: "/dashboard/image-to-video" },
+  { label: "Movie Studio", icon: "🎬", href: "/dashboard/movie-studio" },
   { label: "AI Avatars", icon: "🤖", href: "/dashboard/avatars" },
-  { label: "Podcast Studio", icon: "🎙️", href: "/dashboard/podcast" },
 ];
 
 const SUGGESTED_PROMPTS = [
@@ -148,6 +148,9 @@ export default function AssistantChat() {
 
     if (combined.includes("text to video") || combined.includes("text-to-video") || combined.includes("flow")) {
       actions.push({ label: "Open Text to Video", icon: "⚡", href: "/dashboard/flow" });
+    }
+    if (combined.includes("movie") || combined.includes("timeline") || combined.includes("editor") || combined.includes("stitch")) {
+      actions.push({ label: "Open Movie Studio", icon: "🎬", href: "/dashboard/movie-studio" });
     }
     if (combined.includes("image to video") || combined.includes("image-to-video") || combined.includes("animate")) {
       actions.push({ label: "Open Image to Video", icon: "🖼️", href: "/dashboard/image-to-video" });

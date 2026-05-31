@@ -21,6 +21,7 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   updateProfile,
+  sendEmailVerification,
   type User,
 } from "firebase/auth";
 import { auth } from "./client";
@@ -42,6 +43,7 @@ interface AuthContextValue extends AuthState {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  reloadUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,10 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // Sync session cookie when auth state changes
-  const syncSession = useCallback(async (user: User | null) => {
+  const syncSession = useCallback(async (user: User | null, forceRefresh = false) => {
     try {
       if (user) {
-        const idToken = await user.getIdToken();
+        const idToken = await user.getIdToken(forceRefresh);
         await fetch("/api/auth/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -107,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password
         );
         await updateProfile(user, { displayName });
+        await sendEmailVerification(user);
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Sign up failed";
@@ -116,6 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  const reloadUser = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await currentUser.reload();
+      await syncSession(auth.currentUser, true);
+      setState((prev) => ({ ...prev, user: auth.currentUser }));
+    }
+  }, [syncSession]);
 
   const signInWithGoogle = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
@@ -154,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signOut,
         clearError,
+        reloadUser,
       }}
     >
       {children}

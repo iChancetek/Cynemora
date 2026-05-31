@@ -223,6 +223,16 @@ export default function DashboardPage() {
   // Submit flow render
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    // 0. Pre-check trial limits client-side (admins bypass)
+    const PLATFORM_ADMINS = ["chancellor@ichancetek.com", "chanceminus@gmail.com"];
+    const isAdmin = user?.email ? PLATFORM_ADMINS.includes(user.email.toLowerCase()) : false;
+
+    if (!isAdmin && history.length >= 2) {
+      window.dispatchEvent(new CustomEvent("cynemora:open-trial-expired"));
+      return;
+    }
+
     setRendering(true);
     setActiveStep(1);
     setLogText("Compiling cinematic prompt directives...");
@@ -350,7 +360,12 @@ export default function DashboardPage() {
       setLogText("Render successful! Playing now...");
     } catch (err) {
       console.error("[Generation Fail]", err);
-      alert(`Render Generation failed: ${(err as Error).message}`);
+      const errMsg = (err as Error).message;
+      if (errMsg.includes("Trial limit reached") || errMsg.includes("limit reached")) {
+        window.dispatchEvent(new CustomEvent("cynemora:open-trial-expired"));
+      } else {
+        alert(`Render Generation failed: ${errMsg}`);
+      }
     } finally {
       setRendering(false);
       setActiveStep(0);
