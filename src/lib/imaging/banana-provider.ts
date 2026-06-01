@@ -120,26 +120,22 @@ export class BananaProProvider implements ImageProvider {
       enhancedPrompt += `. Avoid: ${instruction.negativePrompt}`;
     }
 
+    // Generate images using the correct generateImages method
+    const response = await client.models.generateImages({
+      model: "imagen-3.0-generate-002",
+      prompt: enhancedPrompt,
+      config: {
+        numberOfImages: numberOfImages,
+        aspectRatio: instruction.aspectRatio || "1:1",
+      },
+    });
+
     const imageUrls: string[] = [];
-
-    for (let i = 0; i < numberOfImages; i++) {
-      const response = await client.models.generateContent({
-        model: "gemini-2.0-flash-preview-image-generation",
-        contents: enhancedPrompt,
-        config: {
-          responseModalities: ["TEXT", "IMAGE"],
-        },
-      });
-
-      if (response.candidates && response.candidates.length > 0) {
-        const candidate = response.candidates[0];
-        if (candidate.content?.parts) {
-          for (const part of candidate.content.parts) {
-            if (part.inlineData?.mimeType?.startsWith("image/")) {
-              const dataUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-              imageUrls.push(dataUrl);
-            }
-          }
+    if (response.generatedImages && response.generatedImages.length > 0) {
+      for (const genImg of response.generatedImages) {
+        if (genImg.image?.imageBytes) {
+          const dataUrl = `data:image/jpeg;base64,${genImg.image.imageBytes}`;
+          imageUrls.push(dataUrl);
         }
       }
     }

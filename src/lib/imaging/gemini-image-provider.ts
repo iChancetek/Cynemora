@@ -15,7 +15,7 @@ import {
 
 const GEMINI_IMAGE_CONFIG: ImageProviderConfig = {
   name: "Gemini 3 Pro Image",
-  model: "gemini-2.0-flash-preview-image-generation",
+  model: "imagen-3.0-generate-002",
   maxImages: 4,
   supportedAspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
   supportedStyles: [
@@ -34,8 +34,8 @@ const GEMINI_IMAGE_CONFIG: ImageProviderConfig = {
 
 /**
  * Gemini image provider implementation.
- * Uses the Gemini API's native image generation capability
- * (generateContent with image output modality).
+ * Uses Google's dedicated Imagen 3 image generation model
+ * (generateImages) via @google/genai.
  *
  * Strengths:
  * - Concept creation & storyboarding
@@ -84,30 +84,22 @@ export class GeminiImageProvider implements ImageProvider {
         enhancedPrompt += `. Avoid: ${instruction.negativePrompt}`;
       }
 
-      // Generate images (Gemini does this synchronously per call)
+      // Generate images using the correct generateImages method
+      const response = await this.client.models.generateImages({
+        model: GEMINI_IMAGE_CONFIG.model,
+        prompt: enhancedPrompt,
+        config: {
+          numberOfImages: numberOfImages,
+          aspectRatio: instruction.aspectRatio || "1:1",
+        },
+      });
+
       const imageUrls: string[] = [];
-
-      for (let i = 0; i < numberOfImages; i++) {
-        const response = await this.client.models.generateContent({
-          model: GEMINI_IMAGE_CONFIG.model,
-          contents: enhancedPrompt,
-          config: {
-            responseModalities: ["TEXT", "IMAGE"],
-          },
-        });
-
-        // Extract generated image data from the response
-        if (response.candidates && response.candidates.length > 0) {
-          const candidate = response.candidates[0];
-          if (candidate.content?.parts) {
-            for (const part of candidate.content.parts) {
-              if (part.inlineData?.mimeType?.startsWith("image/")) {
-                // Convert base64 data to a data URL for now;
-                // the status route will persist these to Firebase Storage
-                const dataUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                imageUrls.push(dataUrl);
-              }
-            }
+      if (response.generatedImages && response.generatedImages.length > 0) {
+        for (const genImg of response.generatedImages) {
+          if (genImg.image?.imageBytes) {
+            const dataUrl = `data:image/jpeg;base64,${genImg.image.imageBytes}`;
+            imageUrls.push(dataUrl);
           }
         }
       }
