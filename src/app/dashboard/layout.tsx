@@ -34,6 +34,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
       { icon: "🎵", label: "Audio to Video", href: "/dashboard/audio-to-video" },
       { icon: "📊", label: "PPT to Video", href: "/dashboard/ppt-to-video" },
       { icon: "🎬", label: "Movie Studio", href: "/dashboard/movie-studio" },
+      { icon: "🎨", label: "AI Image Studio", href: "/dashboard/image-studio" },
     ],
   },
   {
