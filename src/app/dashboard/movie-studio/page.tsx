@@ -140,6 +140,10 @@ export default function MovieStudioPage() {
   const [assets, setAssets] = useState<VisualAsset[]>([]);
   const [isLoadingDNA, setIsLoadingDNA] = useState(true);
 
+  // 🎨 Real AI Generated Images from Firestore
+  const [studioImages, setStudioImages] = useState<any[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(true);
+
   // 📁 User project folders from Firestore
   const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
   const [selectedProjectFilter, setSelectedProjectFilter] = useState("all");
@@ -149,7 +153,7 @@ export default function MovieStudioPage() {
   const [selectedImportIds, setSelectedImportIds] = useState<string[]>([]);
   
   // 🎬 Integrated Cinema Asset Hub Tab State
-  const [activeAssetTab, setActiveAssetTab] = useState<"renders" | "projects" | "upload" | "dna">("renders");
+  const [activeAssetTab, setActiveAssetTab] = useState<"renders" | "projects" | "upload" | "dna" | "images">("renders");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCharacterFilter, setSelectedCharacterFilter] = useState<string | null>(null);
   
@@ -258,6 +262,31 @@ export default function MovieStudioPage() {
           });
         });
         setProjectsList(projItems);
+
+        // 4. Fetch real images from generated_images
+        setIsLoadingImages(true);
+        const imgQuery = query(
+          collection(db, "generated_images"),
+          where("userId", "==", user.uid)
+        );
+        const imgSnap = await getDocs(imgQuery);
+        const imgItems: any[] = [];
+        
+        imgSnap.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.imageUrls && d.imageUrls.length > 0) {
+            imgItems.push({
+              id: docSnap.id,
+              name: d.prompt ? (d.prompt.length > 32 ? d.prompt.substring(0, 32) + "..." : d.prompt) : `Image #${docSnap.id.substring(0, 6)}`,
+              prompt: d.prompt || "AI Image",
+              imageUrl: d.imageUrls[0],
+              createdAt: d.createdAt?.toDate() || new Date(),
+              aspectRatio: d.aspectRatio || "1:1"
+            });
+          }
+        });
+        imgItems.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        setStudioImages(imgItems);
         
         // Initial timeline starts clean.
         setClips([]);
@@ -268,6 +297,7 @@ export default function MovieStudioPage() {
       } finally {
         setIsLoadingVideos(false);
         setIsLoadingDNA(false);
+        setIsLoadingImages(false);
       }
     }
     loadRealData();
@@ -633,6 +663,41 @@ export default function MovieStudioPage() {
   const handleDragStartAsset = (e: React.DragEvent, asset: PlatformVideo) => {
     e.dataTransfer.setData("application/cynemora-video", JSON.stringify(asset));
     e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleDragStartImage = (e: React.DragEvent, img: any) => {
+    // Construct a PlatformVideo-like structure for the timeline to accept seamlessly
+    const asset = {
+      id: img.id,
+      name: img.name,
+      prompt: img.prompt,
+      videoUrl: img.imageUrl, // Map imageUrl to videoUrl so NLE timeline handles it seamlessly
+      duration: 5, // Default 5 seconds for still images
+      sourceType: "image-studio"
+    };
+    e.dataTransfer.setData("application/cynemora-video", JSON.stringify(asset));
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleAddImageToSequence = (img: any) => {
+    const currentEnd = clips.reduce((acc, c) => Math.max(acc, c.start + c.duration), 0);
+    const newTimelineClip: Clip = {
+      id: `timeline-${Date.now()}-${img.id}`,
+      name: img.name,
+      duration: 5, // 5s still
+      start: currentEnd,
+      track: "V1",
+      videoUrl: img.imageUrl,
+      description: img.prompt,
+      color: "#a78bfa" // Give images a beautiful unique purple color on the timeline!
+    };
+    setClips(prev => [...prev, newTimelineClip]);
+    setSelectedClip(newTimelineClip);
+    setCurrentTime(currentEnd);
+    setDirectorSuggestions(prev => [
+      ...prev,
+      `AI: Appended still image '${img.name}' to the storyboard sequence.`
+    ]);
   };
 
   const handleDragOverTrack = (e: React.DragEvent, trackName: string) => {
@@ -1145,15 +1210,24 @@ export default function MovieStudioPage() {
           <div className={styles.monitorContainer}>
             <div className={styles.monitorDisplay}>
               {selectedClip && selectedClip.videoUrl ? (
-                <video
-                  ref={videoPlayerRef}
-                  src={selectedClip.videoUrl}
-                  className={`${styles.monitorVideo} ${styles[`lut_${activeLUT}`]}`}
-                  style={filterStyles}
-                  loop
-                  muted
-                  playsInline
-                />
+                selectedClip.color === "#a78bfa" || selectedClip.videoUrl.includes("/images/") || selectedClip.videoUrl.match(/\.(jpg|jpeg|gif|png|webp)/i) ? (
+                  <img
+                    src={selectedClip.videoUrl}
+                    className={`${styles.monitorVideo} ${styles[`lut_${activeLUT}`]}`}
+                    style={{ ...filterStyles, objectFit: "cover" }}
+                    alt="Preview"
+                  />
+                ) : (
+                  <video
+                    ref={videoPlayerRef}
+                    src={selectedClip.videoUrl}
+                    className={`${styles.monitorVideo} ${styles[`lut_${activeLUT}`]}`}
+                    style={filterStyles}
+                    loop
+                    muted
+                    playsInline
+                  />
+                )
               ) : (
                 <div 
                   className={`${styles.monitorVideo} ${styles[`lut_${activeLUT}`]}`}
@@ -1539,6 +1613,25 @@ export default function MovieStudioPage() {
               <span>🍿</span> Platform Renders
             </button>
             <button
+              onClick={() => setActiveAssetTab("images")}
+              style={{
+                background: activeAssetTab === "images" ? "rgba(167, 139, 250, 0.15)" : "transparent",
+                border: "none",
+                color: activeAssetTab === "images" ? "#c084fc" : "var(--color-text-muted)",
+                fontSize: "12px",
+                fontWeight: "700",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s"
+              }}
+            >
+              <span>🎨</span> Image Studio Assets
+            </button>
+            <button
               onClick={() => setActiveAssetTab("projects")}
               style={{
                 background: activeAssetTab === "projects" ? "rgba(167, 139, 250, 0.15)" : "transparent",
@@ -1609,6 +1702,108 @@ export default function MovieStudioPage() {
         {/* Tab Body contents */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: "240px" }}>
           
+          {/* TAB: Image Studio Assets */}
+          {activeAssetTab === "images" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+              {/* Search bar & filter controls */}
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", marginBottom: "6px" }}>
+                <div style={{ display: "flex", gap: "8px", flex: 1, maxWidth: "420px" }}>
+                  <input
+                    type="text"
+                    placeholder="🔍 Search images by prompt keyword..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: "rgba(0, 0, 0, 0.3)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "6px",
+                      padding: "6px 12px",
+                      fontSize: "11px",
+                      color: "white",
+                      outline: "none"
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      style={{ background: "rgba(255,255,255,0.06)", border: "none", color: "white", padding: "0 10px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Images Grid */}
+              {isLoadingImages ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, minHeight: "180px" }}>
+                  <div style={{ width: "24px", height: "24px", border: "2px solid #a78bfa", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                  <span style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "8px" }}>Loading images...</span>
+                </div>
+              ) : studioImages.length === 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, minHeight: "180px", border: "1px dashed rgba(255,255,255,0.06)", borderRadius: "8px", padding: "20px", textAlign: "center" }}>
+                  <span style={{ fontSize: "20px", marginBottom: "6px" }}>🎨</span>
+                  <span style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>No AI generated images found. Go to AI Image Studio to generate some!</span>
+                </div>
+              ) : (
+                <div style={{ overflowY: "auto", maxHeight: "200px", paddingRight: "4px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "10px" }}>
+                    {studioImages
+                      .filter(img => !searchQuery || img.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((img) => {
+                        const usageCount = clips.filter(c => c.videoUrl === img.imageUrl).length;
+                        return (
+                          <div
+                            key={img.id}
+                            draggable
+                            onDragStart={(e) => handleDragStartImage(e, img)}
+                            onClick={() => handleAddImageToSequence(img)}
+                            style={{
+                              background: "rgba(255, 255, 255, 0.02)",
+                              border: usageCount > 0 ? "1px solid #10b981" : "1px solid rgba(255, 255, 255, 0.05)",
+                              borderRadius: "6px",
+                              padding: "6px",
+                              cursor: "pointer",
+                              position: "relative",
+                              transition: "all 0.2s",
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: "4px"
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(167,139,250,0.4)"}
+                            onMouseLeave={(e) => e.currentTarget.style.borderColor = usageCount > 0 ? "#10b981" : "rgba(255, 255, 255, 0.05)"}
+                            title="Click to add to Storyboard, or Drag onto Tracks"
+                          >
+                            {/* Used Count Badge */}
+                            {usageCount > 0 && (
+                              <span style={{ position: "absolute", top: "4px", right: "4px", zIndex: 10, background: "#10b981", color: "white", fontSize: "8px", fontWeight: "800", padding: "1px 4px", borderRadius: "10px" }}>
+                                x{usageCount} Used
+                              </span>
+                            )}
+
+                            <div style={{ width: "100%", height: "64px", background: "black", borderRadius: "4px", overflow: "hidden", position: "relative" }}>
+                              <img src={img.imageUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
+                              <span style={{ position: "absolute", bottom: "4px", left: "4px", background: "rgba(0,0,0,0.6)", fontSize: "8px", padding: "1px 4px", borderRadius: "2px", fontWeight: "700" }}>
+                                Still (5s)
+                              </span>
+                            </div>
+                            
+                            <span style={{ fontSize: "9px", fontWeight: "700", color: "white", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%", textAlign: "left" }}>
+                              {img.name}
+                            </span>
+                            <span style={{ fontSize: "7px", color: "var(--color-text-muted)", display: "block", textAlign: "left" }}>
+                              Image Studio
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* TAB 1: Standalone Platform Renders */}
           {activeAssetTab === "renders" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>

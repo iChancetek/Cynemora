@@ -1,15 +1,9 @@
-/* ========================================
-   CyneMora — Image to Video
-   Transform static images into cinematic motion
-   ======================================== */
-
-"use client";
-
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/firebase/auth-context";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, orderBy } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase/client";
+import Link from "next/link";
 import styles from "../studio.module.css";
 
 const ANIMATION_STYLES = [
@@ -26,6 +20,14 @@ const ATMOSPHERE_EFFECTS = [
   "Lens flares", "Dust motes", "Snow", "Fireflies", "Aurora borealis"
 ];
 
+interface GeneratedImage {
+  id: string;
+  imageUrls: string[];
+  prompt: string;
+  createdAt: any;
+  aspectRatio: string;
+}
+
 export default function ImageToVideoPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +42,46 @@ export default function ImageToVideoPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [logText, setLogText] = useState("");
   const [resultVideoUrl, setResultVideoUrl] = useState("");
+
+  // New Image Studio assets state
+  const [studioImages, setStudioImages] = useState<GeneratedImage[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+
+  // Load generated images from Firestore
+  useEffect(() => {
+    async function loadStudioImages() {
+      if (!user) return;
+      setLoadingImages(true);
+      try {
+        const q = query(
+          collection(db, "generated_images"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const imgs: GeneratedImage[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.imageUrls && data.imageUrls.length > 0) {
+            imgs.push({
+              id: docSnap.id,
+              imageUrls: data.imageUrls,
+              prompt: data.prompt || "AI Image",
+              createdAt: data.createdAt?.toDate() || new Date(),
+              aspectRatio: data.aspectRatio || "1:1"
+            });
+          }
+        });
+        setStudioImages(imgs);
+      } catch (err) {
+        console.warn("Failed to load studio images", err);
+      } finally {
+        setLoadingImages(false);
+      }
+    }
+    loadStudioImages();
+  }, [user]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -251,6 +293,97 @@ export default function ImageToVideoPage() {
               </>
             )}
           </div>
+
+          {/* AI Image Studio Selector Integration */}
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px", marginBottom: "16px" }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowImageSelector(!showImageSelector);
+              }}
+              style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "11px", height: "32px", borderRadius: "8px" }}
+            >
+              🎨 Choose from Image Studio
+            </button>
+            {uploadedImage && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUploadedImage(null);
+                  setUploadedFile(null);
+                }}
+                style={{ color: "var(--color-error)", fontSize: "11px", height: "32px", borderRadius: "8px", padding: "0 10px" }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {showImageSelector && (
+            <div style={{
+              background: "rgba(18, 16, 26, 0.75)",
+              border: "1px solid rgba(167, 139, 250, 0.2)",
+              borderRadius: "var(--radius-lg)",
+              padding: "12px",
+              marginBottom: "16px",
+              backdropFilter: "blur(12px)",
+              maxHeight: "260px",
+              overflowY: "auto"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#a78bfa" }}>Your Image Studio Library</span>
+                <button
+                  type="button"
+                  style={{ background: "transparent", border: "none", color: "var(--color-text-secondary)", fontSize: "11px", cursor: "pointer" }}
+                  onClick={() => setShowImageSelector(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {loadingImages ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+                  <div style={{ width: "20px", height: "20px", border: "2px solid #a78bfa", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                </div>
+              ) : studioImages.length === 0 ? (
+                <div style={{ textTransform: "initial", textAlign: "center", fontSize: "11px", color: "var(--color-text-muted)", padding: "20px" }}>
+                  No generated images found. Go to <Link href="/dashboard/image-studio" style={{ color: "#a78bfa", textDecoration: "underline" }}>AI Image Studio</Link> to generate some!
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))", gap: "8px" }}>
+                  {studioImages.map((img) => (
+                    <div
+                      key={img.id}
+                      onClick={() => {
+                        setUploadedImage(img.imageUrls[0]);
+                        setUploadedFile(null); // Clear manual file upload state
+                        setShowImageSelector(false);
+                      }}
+                      style={{
+                        position: "relative",
+                        aspectRatio: "1/1",
+                        background: "var(--color-surface-3)",
+                        borderRadius: "var(--radius-md)",
+                        overflow: "hidden",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = "#a78bfa"}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)"}
+                      title={img.prompt}
+                    >
+                      <img src={img.imageUrls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Animation Style */}
           <div className={styles.panelSection}>

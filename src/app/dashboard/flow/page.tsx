@@ -263,6 +263,46 @@ export default function FlowPlayground() {
     };
   }, [user]);
 
+  // Load generated images from Image Studio
+  const [studioImages, setStudioImages] = useState<any[]>([]);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [selectedStudioImage, setSelectedStudioImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadStudioImages() {
+      if (!user) return;
+      setLoadingImages(true);
+      try {
+        const q = query(
+          collection(db, "generated_images"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const imgs: any[] = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.imageUrls && data.imageUrls.length > 0) {
+            imgs.push({
+              id: docSnap.id,
+              imageUrls: data.imageUrls,
+              prompt: data.prompt || "AI Image",
+              createdAt: data.createdAt?.toDate() || new Date(),
+              aspectRatio: data.aspectRatio || "1:1"
+            });
+          }
+        });
+        setStudioImages(imgs);
+      } catch (err) {
+        console.warn("Failed to load studio images", err);
+      } finally {
+        setLoadingImages(false);
+      }
+    }
+    loadStudioImages();
+  }, [user]);
+
   // Click on a preset style
   const handlePresetSelect = (preset: typeof PRESETS[0]) => {
     if (selectedStyle === preset.name) {
@@ -301,6 +341,10 @@ export default function FlowPlayground() {
             refs.push(dna.referenceImages[0]);
           }
         }
+      }
+
+      if (selectedStudioImage) {
+        refs.push(selectedStudioImage);
       }
 
       // 1. Submit render request to API
@@ -611,6 +655,92 @@ export default function FlowPlayground() {
             </span>
           </div>
         )}
+
+        {/* AI Reference Image (from Image Studio) */}
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Visual Reference Image</label>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              type="button"
+              className={styles.select}
+              onClick={() => setShowImageSelector(!showImageSelector)}
+              style={{
+                textAlign: "left",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 12px",
+                cursor: "pointer",
+                background: selectedStudioImage ? "rgba(167, 139, 250, 0.1)" : "var(--color-surface-3)",
+                border: selectedStudioImage ? "1px solid #a78bfa" : "1px solid rgba(255,255,255,0.08)",
+                width: "100%"
+              }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {selectedStudioImage ? "🖼️ Reference Image Selected" : "🎨 Choose from Image Studio"}
+              </span>
+              <span>{showImageSelector ? "▲" : "▼"}</span>
+            </button>
+            {selectedStudioImage && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSelectedStudioImage(null)}
+                style={{ color: "var(--color-error)", fontSize: "11px", padding: "0 8px", background: "transparent", border: "none", cursor: "pointer" }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {showImageSelector && (
+            <div style={{
+              background: "rgba(18, 16, 26, 0.75)",
+              border: "1px solid rgba(167, 139, 250, 0.2)",
+              borderRadius: "var(--radius-lg)",
+              padding: "12px",
+              marginTop: "8px",
+              backdropFilter: "blur(12px)",
+              maxHeight: "220px",
+              overflowY: "auto"
+            }}>
+              {loadingImages ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: "10px" }}>
+                  <div style={{ width: "16px", height: "16px", border: "2px solid #a78bfa", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                </div>
+              ) : studioImages.length === 0 ? (
+                <div style={{ textTransform: "initial", textAlign: "center", fontSize: "11px", color: "var(--color-text-muted)", padding: "10px" }}>
+                  No generated images found in Image Studio.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: "6px" }}>
+                  {studioImages.map((img) => (
+                    <div
+                      key={img.id}
+                      onClick={() => {
+                        setSelectedStudioImage(img.imageUrls[0]);
+                        setShowImageSelector(false);
+                      }}
+                      style={{
+                        position: "relative",
+                        aspectRatio: "1/1",
+                        background: "var(--color-surface-3)",
+                        borderRadius: "var(--radius-md)",
+                        overflow: "hidden",
+                        border: selectedStudioImage === img.imageUrls[0] ? "2px solid #a78bfa" : "1px solid rgba(255, 255, 255, 0.08)",
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                      }}
+                      title={img.prompt}
+                    >
+                      <img src={img.imageUrls[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Preset Styles */}
         <div className={styles.formGroup}>
