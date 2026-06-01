@@ -1,0 +1,9 @@
+# App Hosting configuration
+# https://firebase.google.com/docs/app-hosting/configure
+
+# Mount Secret Manager secrets as environment variables at runtime
+env:
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
