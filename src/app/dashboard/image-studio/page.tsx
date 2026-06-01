@@ -31,6 +31,7 @@ const PROVIDERS = [
   { id: "auto", label: "Auto Select", icon: "⚡", desc: "Intelligent routing" },
   { id: "banana-pro", label: "Banana Pro", icon: "🍌", desc: "Photorealistic" },
   { id: "gemini-image", label: "Gemini 3 Pro", icon: "✨", desc: "Creative" },
+  { id: "openai-image", label: "GPT Image 2", icon: "🧠", desc: "General Art" },
 ];
 
 const IMAGE_COUNTS = [1, 4, 8, 16];

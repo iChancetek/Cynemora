@@ -12,6 +12,7 @@ import {
 } from "./provider";
 import { GeminiImageProvider, getGeminiImageProvider } from "./gemini-image-provider";
 import { BananaProProvider, getBananaProProvider } from "./banana-provider";
+import { OpenAIImageProvider, getOpenAIImageProvider } from "./openai-image-provider";
 
 export interface ImageProviderSelection {
   provider: ImageProvider;
@@ -71,6 +72,16 @@ export class ImageManager {
     } catch (error) {
       console.warn(
         "[ImageManager] Banana Pro provider unavailable:",
+        (error as Error).message
+      );
+    }
+
+    try {
+      const openai = getOpenAIImageProvider();
+      this.providers.set(openai.name, openai);
+    } catch (error) {
+      console.warn(
+        "[ImageManager] OpenAI Image provider unavailable:",
         (error as Error).message
       );
     }
