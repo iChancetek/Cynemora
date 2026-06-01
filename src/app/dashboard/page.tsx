@@ -25,10 +25,17 @@ interface FlowVideo {
   deletedAt?: string;
 }
 
-/** Rewrite raw Gemini URIs to go through our server-side proxy */
+/** Normalise video URLs — Firebase Storage / public URLs pass through;
+ *  raw Gemini URIs get wrapped in the server proxy as a last resort. */
 function proxyVideoUrl(url: string): string {
   if (!url) return url;
-  
+
+  // Firebase Storage URLs are permanent and publicly accessible — use as-is
+  if (url.includes("storage.googleapis.com/") || url.includes("firebasestorage.googleapis.com/") || url.includes("firebasestorage.app/")) {
+    return url;
+  }
+
+  // Unwrap any nested proxy wrappers
   let rawUrl = url;
   while (true) {
     const idx = rawUrl.indexOf("/api/render/proxy?url=");

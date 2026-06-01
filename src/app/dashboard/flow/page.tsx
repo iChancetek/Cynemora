@@ -7,8 +7,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc, updateDoc, collectionGroup, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase/client";
+import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/auth-context";
 import { VisualDNA } from "@/lib/types";
 import styles from "./flow.module.css";
@@ -27,10 +26,17 @@ interface FlowVideo {
 
 
 
-/** Rewrite raw Gemini/Veo URIs to go through our server-side proxy */
+/** Normalise video URLs — Firebase Storage / public URLs pass through;
+ *  raw Gemini URIs get wrapped in the server proxy as a last resort. */
 function proxyVideoUrl(url: string): string {
   if (!url) return url;
-  
+
+  // Firebase Storage URLs are permanent and publicly accessible — use as-is
+  if (url.includes("storage.googleapis.com/") || url.includes("firebasestorage.googleapis.com/") || url.includes("firebasestorage.app/")) {
+    return url;
+  }
+
+  // Unwrap any nested proxy wrappers
   let rawUrl = url;
   while (true) {
     const idx = rawUrl.indexOf("/api/render/proxy?url=");
@@ -375,33 +381,12 @@ export default function FlowPlayground() {
         throw new Error("Rendering complete, but no video URI returned by provider");
       }
 
-      // 3. Download and cache to Firebase Storage
-      let finalVideoUrl = completedVideoUrl;
-      try {
-        const isGeminiOrProxy = completedVideoUrl.includes("generativelanguage.googleapis.com") || completedVideoUrl.includes("/api/render/proxy");
-        if (user && isGeminiOrProxy && !completedVideoUrl.includes("commondatastorage.googleapis.com")) {
-          setActiveStep(4);
-          setLogText("Uploading cinematic master to Firebase Storage...");
-          
-          // Use proxy helper to get a sanitized, single-wrapped proxy URL for download
-          const proxyUrl = proxyVideoUrl(completedVideoUrl);
-          const videoRes = await fetch(proxyUrl);
-          
-          if (videoRes.ok) {
-            const blob = await videoRes.blob();
-            const storageRef = ref(storage, `renders/${user.uid}/veo-${Date.now()}.mp4`);
-            await uploadBytes(storageRef, blob, { contentType: "video/mp4" });
-            finalVideoUrl = await getDownloadURL(storageRef);
-            setLogText("Successfully cached to Firebase Storage.");
-          } else {
-            console.warn("Proxy returned an error, falling back to original URL");
-          }
-        }
-      } catch (uploadErr) {
-        console.warn("Failed to upload to Firebase Storage, using original remote URL", uploadErr);
-      }
-
-      setActiveVideoUrl(proxyVideoUrl(finalVideoUrl));
+      // 3. Video is already persisted to Firebase Storage by the server-side
+      // status route. The completedVideoUrl is now a permanent public URL.
+      const finalVideoUrl = completedVideoUrl;
+      setActiveStep(4);
+      setLogText("Video cached to Firebase Storage.");
+      setActiveVideoUrl(finalVideoUrl);
 
       // 4. Save metadata to Firestore database
       let docId = `render_${Date.now()}`;
@@ -412,7 +397,7 @@ export default function FlowPlayground() {
         style: selectedStyle || "custom",
         aspectRatio,
         movement: `${cameraMovement} (${movementSpeed})`,
-        videoUrl: proxyVideoUrl(finalVideoUrl),
+        videoUrl: finalVideoUrl,
         createdAt: new Date()
       };
 
@@ -424,7 +409,7 @@ export default function FlowPlayground() {
             style: selectedStyle || "custom",
             aspectRatio,
             movement: `${cameraMovement} (${movementSpeed})`,
-            videoUrl: proxyVideoUrl(finalVideoUrl),
+            videoUrl: finalVideoUrl,
             createdAt: new Date(),
             status: "completed"
           });
@@ -452,27 +437,7 @@ export default function FlowPlayground() {
       setActiveStep(4);
       const fallbackUrl = CINEMATIC_VIDEOS[Math.floor(Math.random() * CINEMATIC_VIDEOS.length)];
       
-      let finalFallbackUrl = fallbackUrl;
-      try {
-        if (user && !fallbackUrl.includes("commondatastorage.googleapis.com")) {
-          setLogText("Caching premium mockup to Firebase Storage...");
-          
-          const proxyUrl = `/api/render/proxy?url=${encodeURIComponent(fallbackUrl)}`;
-          const videoRes = await fetch(proxyUrl);
-          
-          if (videoRes.ok) {
-            const blob = await videoRes.blob();
-            const storageRef = ref(storage, `renders/${user.uid}/fallback-${Date.now()}.mp4`);
-            await uploadBytes(storageRef, blob, { contentType: "video/mp4" });
-            finalFallbackUrl = await getDownloadURL(storageRef);
-          } else {
-            console.warn("Proxy returned an error for mockup, using remote URI");
-          }
-        }
-      } catch (uploadErr) {
-        console.warn("Mockup upload failed due to CORS or auth, using remote URI", uploadErr);
-      }
-
+      const finalFallbackUrl = fallbackUrl;
       setActiveVideoUrl(finalFallbackUrl);
       // React state update will trigger the video element's autoPlay
       
