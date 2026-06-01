@@ -15,7 +15,7 @@ import {
 
 const GEMINI_IMAGE_CONFIG: ImageProviderConfig = {
   name: "Gemini 3 Pro Image",
-  model: "imagen-3.0-generate-002",
+  model: "gemini-3-pro-image-preview",
   maxImages: 4,
   supportedAspectRatios: ["1:1", "16:9", "9:16", "4:3", "3:4"],
   supportedStyles: [

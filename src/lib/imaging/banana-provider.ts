@@ -122,7 +122,7 @@ export class BananaProProvider implements ImageProvider {
 
     // Generate images using the correct generateImages method
     const response = await client.models.generateImages({
-      model: "imagen-3.0-generate-002",
+      model: "gemini-3-pro-image-preview",
       prompt: enhancedPrompt,
       config: {
         numberOfImages: numberOfImages,
