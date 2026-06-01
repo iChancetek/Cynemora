@@ -82,7 +82,6 @@ export class OpenAIImageProvider implements ImageProvider {
         prompt: enhancedPrompt.substring(0, 1000), // DALL-E 2 prompt limit is 1000 chars
         n: numberOfImages,
         size: "1024x1024",
-        response_format: "b64_json",
       });
 
       const imageUrls: string[] = [];
@@ -91,6 +90,21 @@ export class OpenAIImageProvider implements ImageProvider {
           if (genImg.b64_json) {
             const dataUrl = `data:image/png;base64,${genImg.b64_json}`;
             imageUrls.push(dataUrl);
+          } else if (genImg.url) {
+            try {
+              const imgRes = await fetch(genImg.url);
+              if (imgRes.ok) {
+                const arrayBuffer = await imgRes.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString("base64");
+                const contentType = imgRes.headers.get("content-type") || "image/png";
+                imageUrls.push(`data:${contentType};base64,${base64}`);
+              } else {
+                imageUrls.push(genImg.url);
+              }
+            } catch (err) {
+              console.error("[OpenAIImageProvider] Failed to fetch image URL:", err);
+              imageUrls.push(genImg.url);
+            }
           }
         }
       }
