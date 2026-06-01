@@ -90,7 +90,7 @@ export default function LandingPage() {
     <div className={styles.landing}>
       {/* ---- Video Background ---- */}
       <div className={styles.videoBackground}>
-        <video autoPlay loop muted playsInline src="/cynemora.mp4" />
+        <video autoPlay loop muted playsInline src="/Cynemora6.mp4" />
         <div className={styles.videoOverlay} />
       </div>
 
