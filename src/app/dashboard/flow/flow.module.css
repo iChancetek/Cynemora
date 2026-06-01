@@ -24,6 +24,7 @@
   gap: var(--space-6);
   overflow-y: auto;
   height: 100%;
+  min-height: 0;
 }
 
 .panelTitle {
@@ -129,6 +130,7 @@
   height: 100%;
   overflow-y: auto;
   padding-right: var(--space-2);
+  min-height: 0;
 }
 
 /* ---- Theater ---- */
@@ -138,6 +140,8 @@
   border: 1px solid var(--color-border);
   aspect-ratio: 16/9;
   max-height: 440px;
+  min-height: 300px;
+  width: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -281,14 +285,14 @@
 
 .historyGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--space-4);
 }
 
 .historyCard {
   background: transparent;
   perspective: 1000px;
-  height: 260px;
+  height: 320px;
   cursor: pointer;
 }
 
@@ -351,7 +355,7 @@
 }
 
 .historyThumb {
-  height: 110px;
+  height: 180px;
   background: var(--color-surface-2);
   display: flex;
   align-items: center;

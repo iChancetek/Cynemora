@@ -126,8 +126,9 @@ export async function GET(request: NextRequest) {
         status.videoUrl = await persistToStorage(status.videoUrl, operationId);
       } catch (persistErr) {
         console.error("[Status] Failed to persist video, falling back to proxy:", persistErr);
-        // Fall back to the proxy route if persistence fails
-        status.videoUrl = `/api/render/proxy?url=${encodeURIComponent(status.videoUrl)}`;
+        // Fall back to the proxy route if persistence fails. Use base64 to bypass WAF restrictions.
+        const b64Url = Buffer.from(status.videoUrl).toString('base64');
+        status.videoUrl = `/api/render/proxy?b64url=${b64Url}`;
       }
     }
 

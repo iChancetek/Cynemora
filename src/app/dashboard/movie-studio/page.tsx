@@ -93,16 +93,26 @@ function proxyVideoUrl(url: string): string {
   // Unwrap any nested proxy wrappers
   let rawUrl = url;
   while (true) {
-    const idx = rawUrl.indexOf("/api/render/proxy?url=");
-    if (idx !== -1) {
-      rawUrl = decodeURIComponent(rawUrl.substring(idx + "/api/render/proxy?url=".length));
+    const proxyIdx = rawUrl.indexOf("/api/render/proxy?url=");
+    const b64ProxyIdx = rawUrl.indexOf("/api/render/proxy?b64url=");
+    
+    if (proxyIdx !== -1) {
+      rawUrl = decodeURIComponent(rawUrl.substring(proxyIdx + "/api/render/proxy?url=".length));
+    } else if (b64ProxyIdx !== -1) {
+      const b64Str = rawUrl.substring(b64ProxyIdx + "/api/render/proxy?b64url=".length);
+      try {
+        rawUrl = atob(b64Str);
+      } catch (e) {
+        break;
+      }
     } else {
       break;
     }
   }
 
   if (rawUrl.includes("generativelanguage.googleapis.com")) {
-    return `/api/render/proxy?url=${encodeURIComponent(rawUrl)}`;
+    const b64Url = btoa(rawUrl);
+    return `/api/render/proxy?b64url=${b64Url}`;
   }
   return rawUrl;
 }

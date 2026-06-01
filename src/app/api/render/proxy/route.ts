@@ -2,17 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  let b64url = searchParams.get("b64url");
   let url = searchParams.get("url");
 
+  if (b64url) {
+    try {
+      url = Buffer.from(b64url, 'base64').toString('utf-8');
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid base64 url parameter" }, { status: 400 });
+    }
+  }
+
   if (!url) {
-    return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
+    return NextResponse.json({ error: "Missing url or b64url parameter" }, { status: 400 });
   }
 
   // Iteratively unwrap any proxy prefixes (absolute or relative)
   while (true) {
     const proxyIdx = url.indexOf("/api/render/proxy?url=");
+    const b64ProxyIdx = url.indexOf("/api/render/proxy?b64url=");
+    
     if (proxyIdx !== -1) {
       url = decodeURIComponent(url.substring(proxyIdx + "/api/render/proxy?url=".length));
+    } else if (b64ProxyIdx !== -1) {
+      const b64Str = url.substring(b64ProxyIdx + "/api/render/proxy?b64url=".length);
+      try {
+        url = Buffer.from(b64Str, 'base64').toString('utf-8');
+      } catch (e) {
+        break;
+      }
     } else {
       break;
     }
