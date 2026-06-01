@@ -15,15 +15,15 @@ import {
 
 const OPENAI_IMAGE_CONFIG: ImageProviderConfig = {
   name: "GPT Image 2",
-  model: "dall-e-2",
+  model: "gpt-image-2",
   maxImages: 4,
-  supportedAspectRatios: ["1:1"], // dall-e-2 only supports 1:1, 1024x1024, 512x512, 256x256
+  supportedAspectRatios: ["1:1", "16:9", "9:16"],
   supportedStyles: [
     "photorealistic", "illustration", "anime", "watercolor",
     "oil-painting", "sketch", "3d-render", "pixel-art",
     "cinematic", "concept-art"
   ],
-  supportsNegativePrompt: false, // DALL-E 2/3 don't support negative prompts natively via API
+  supportsNegativePrompt: false,
   supportsReferenceImages: false,
   costMultiplier: 1.0,
   strengths: [
@@ -73,40 +73,56 @@ export class OpenAIImageProvider implements ImageProvider {
         enhancedPrompt = `${instruction.prompt}. Style: ${instruction.style}`;
       }
       if (instruction.negativePrompt) {
-        // DALL-E doesn't have a negative prompt field, so we just append it
         enhancedPrompt += `. Do NOT include: ${instruction.negativePrompt}`;
       }
 
-      const response = await this.client.images.generate({
-        model: this.config.model,
-        prompt: enhancedPrompt.substring(0, 1000), // DALL-E 2 prompt limit is 1000 chars
-        n: numberOfImages,
-        size: "1024x1024",
-      });
+      // Map aspect ratio to gpt-image-1 size parameter
+      const sizeMap: Record<string, "1024x1024" | "1536x1024" | "1024x1536"> = {
+        "1:1": "1024x1024",
+        "16:9": "1536x1024",
+        "4:3": "1536x1024",
+        "9:16": "1024x1536",
+        "3:4": "1024x1536",
+      };
+      const size = sizeMap[instruction.aspectRatio || "1:1"] || "1024x1024";
 
+      // gpt-image-1 generates one image per call; loop for multiple
       const imageUrls: string[] = [];
-      if (response.data && response.data.length > 0) {
-        for (const genImg of response.data) {
-          if (genImg.b64_json) {
-            const dataUrl = `data:image/png;base64,${genImg.b64_json}`;
-            imageUrls.push(dataUrl);
-          } else if (genImg.url) {
-            try {
-              const imgRes = await fetch(genImg.url);
-              if (imgRes.ok) {
-                const arrayBuffer = await imgRes.arrayBuffer();
-                const base64 = Buffer.from(arrayBuffer).toString("base64");
-                const contentType = imgRes.headers.get("content-type") || "image/png";
-                imageUrls.push(`data:${contentType};base64,${base64}`);
-              } else {
+      const generateOne = async () => {
+        const response = await this.client.images.generate({
+          model: this.config.model,
+          prompt: enhancedPrompt.substring(0, 4096),
+          size,
+        });
+
+        if (response.data && response.data.length > 0) {
+          for (const genImg of response.data) {
+            if (genImg.b64_json) {
+              const dataUrl = `data:image/png;base64,${genImg.b64_json}`;
+              imageUrls.push(dataUrl);
+            } else if (genImg.url) {
+              try {
+                const imgRes = await fetch(genImg.url);
+                if (imgRes.ok) {
+                  const arrayBuffer = await imgRes.arrayBuffer();
+                  const base64 = Buffer.from(arrayBuffer).toString("base64");
+                  const contentType = imgRes.headers.get("content-type") || "image/png";
+                  imageUrls.push(`data:${contentType};base64,${base64}`);
+                } else {
+                  imageUrls.push(genImg.url);
+                }
+              } catch (err) {
+                console.error("[OpenAIImageProvider] Failed to fetch image URL:", err);
                 imageUrls.push(genImg.url);
               }
-            } catch (err) {
-              console.error("[OpenAIImageProvider] Failed to fetch image URL:", err);
-              imageUrls.push(genImg.url);
             }
           }
         }
+      };
+
+      // Run generations (sequentially to avoid rate limits)
+      for (let i = 0; i < numberOfImages; i++) {
+        await generateOne();
       }
 
       if (imageUrls.length === 0) {
