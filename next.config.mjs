@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
 
 // Extract App Hosting configuration if available
-let webAppConfig: Record<string, string> = {};
+let webAppConfig = {};
 if (process.env.FIREBASE_WEBAPP_CONFIG) {
   try {
     webAppConfig = JSON.parse(process.env.FIREBASE_WEBAPP_CONFIG);
@@ -10,7 +10,7 @@ if (process.env.FIREBASE_WEBAPP_CONFIG) {
   }
 }
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || webAppConfig.apiKey || "",
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || webAppConfig.authDomain || "",
