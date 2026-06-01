@@ -15,6 +15,8 @@ import { adminStorage } from "@/lib/firebase/admin";
 // client polls rapidly.  Maps operationId → Firebase Storage URL.
 const persistedUrls = new Map<string, string>();
 
+import { v4 as uuidv4 } from "uuid";
+
 /**
  * Download a video from Google's temporary Gemini URI using the
  * server-side API key, upload it to Firebase Storage, and return
@@ -56,16 +58,23 @@ async function persistToStorage(geminiUri: string, operationId: string): Promise
   const bucket = adminStorage.bucket();
   const file = bucket.file(storagePath);
 
+  // Use a UUID token to allow public reads without needing legacy ACLs
+  const downloadToken = uuidv4();
+
   await file.save(buffer, {
-    metadata: { contentType },
-    public: true,
+    metadata: { 
+      contentType,
+      metadata: {
+        firebaseStorageDownloadTokens: downloadToken
+      }
+    },
   });
 
-  // Get the public URL
-  const publicUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+  // Get the Firebase-compatible public URL
+  const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
   
   persistedUrls.set(operationId, publicUrl);
-  console.log(`[Status] Video persisted: ${storagePath}`);
+  console.log(`[Status] Video persisted: ${storagePath} at ${publicUrl}`);
 
   return publicUrl;
 }
