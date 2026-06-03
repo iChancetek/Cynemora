@@ -4,6 +4,7 @@ import path from "path";
 import os from "os";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import { adminStorage } from "@/lib/firebase/admin";
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -12,15 +13,14 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for video processing
 
 // Helper to resolve proxied or b64-wrapped URLs
-function resolveUrl(url: string): string {
+function resolveUrl(url: string, origin: string): string {
   let decodedUrl = url;
   
   if (decodedUrl.startsWith("/")) {
     // Relative API URLs
     if (decodedUrl.startsWith("/api/render/proxy")) {
-      const dummyBase = "http://localhost:3000";
       try {
-        const urlObj = new URL(decodedUrl, dummyBase);
+        const urlObj = new URL(decodedUrl, origin);
         const b64url = urlObj.searchParams.get("b64url");
         const paramUrl = urlObj.searchParams.get("url");
         if (b64url) {
@@ -31,6 +31,9 @@ function resolveUrl(url: string): string {
       } catch (e) {
         console.error("Failed to parse relative proxy URL:", e);
       }
+    } else {
+      // General relative path
+      decodedUrl = `${origin}${decodedUrl}`;
     }
   }
 
@@ -66,19 +69,74 @@ function resolveUrl(url: string): string {
     }
   }
 
-  if (decodedUrl.includes("gtv-videos-bucket/sample/")) {
-    if (decodedUrl.includes("ForBiggerFun.mp4")) {
-      decodedUrl = "https://media.w3.org/2010/05/sintel/trailer_hd.mp4";
-    } else if (decodedUrl.includes("ForBiggerBlazes.mp4")) {
-      decodedUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
-    } else if (decodedUrl.includes("ForBiggerEscapes.mp4")) {
-      decodedUrl = "https://media.w3.org/2010/05/bunny/trailer.mp4";
-    } else if (decodedUrl.includes("ForBiggerJoyrides.mp4")) {
-      decodedUrl = "https://media.w3.org/2010/05/video/movie_300.mp4";
+  return decodedUrl;
+}
+
+/** Parse bucket name and object path from a Firebase Storage public URL */
+function parseFirebaseStorageUrl(urlStr: string): { bucketName: string; objectPath: string } | null {
+  try {
+    const url = new URL(urlStr);
+    
+    // Check if it matches firebasestorage.googleapis.com or firebasestorage.app
+    if (url.hostname === "firebasestorage.googleapis.com" || url.hostname === "firebasestorage.app" || url.hostname.endsWith(".firebasestorage.app")) {
+      const pathParts = url.pathname.split("/");
+      // Path format is /v0/b/{bucketName}/o/{objectPath}
+      const bIndex = pathParts.indexOf("b");
+      const oIndex = pathParts.indexOf("o");
+      if (bIndex !== -1 && oIndex !== -1 && oIndex > bIndex + 1) {
+        const bucketName = pathParts[bIndex + 1];
+        const objectPathEncoded = pathParts.slice(oIndex + 1).join("/");
+        const objectPath = decodeURIComponent(objectPathEncoded);
+        return { bucketName, objectPath };
+      }
+    }
+    
+    // Also handle storage.googleapis.com/{bucketName}/{objectPath}
+    if (url.hostname === "storage.googleapis.com") {
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      if (pathParts.length >= 2) {
+        const bucketName = pathParts[0];
+        const objectPath = decodeURIComponent(pathParts.slice(1).join("/"));
+        return { bucketName, objectPath };
+      }
+    }
+  } catch (e) {
+    // Ignore invalid URLs
+  }
+  return null;
+}
+
+/** Attempt to fetch a URL with retries and proper headers */
+async function fetchWithRetry(url: string, retries = 2): Promise<Response | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+          "Accept": "video/mp4,video/webm,video/*;q=0.9,*/*;q=0.5",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        redirect: "follow",
+      });
+
+      if (response.ok) return response;
+
+      console.warn(`[Stitch] Fetch attempt ${attempt + 1} failed for ${url}: ${response.status} ${response.statusText}`);
+      
+      // Don't retry on 403/404 - those won't change
+      if (response.status === 403 || response.status === 404) {
+        return null;
+      }
+    } catch (err: any) {
+      console.warn(`[Stitch] Fetch attempt ${attempt + 1} threw for ${url}: ${err.message}`);
+    }
+    
+    // Brief backoff before retry
+    if (attempt < retries) {
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
     }
   }
-
-  return decodedUrl;
+  return null;
 }
 
 interface StitchClip {
@@ -100,27 +158,68 @@ export async function POST(request: NextRequest) {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "cynemora-stitch-"));
 
     const standardizedPaths: string[] = [];
+    const skippedClips: string[] = [];
+    const origin = request.nextUrl.origin;
 
     // Process each clip
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
-      const resolved = resolveUrl(clip.videoUrl);
+      const resolved = resolveUrl(clip.videoUrl, origin);
 
-      // Download original asset
-      const response = await fetch(resolved, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      console.log(`[Stitch] Processing clip ${i + 1}/${clips.length}: ${resolved.substring(0, 120)}...`);
+
+      let buffer: Buffer;
+      let contentType = "";
+
+      const parsedFirebase = parseFirebaseStorageUrl(resolved);
+      if (parsedFirebase) {
+        try {
+          console.log(`[Stitch] Downloading directly from Firebase Storage bucket '${parsedFirebase.bucketName}', path '${parsedFirebase.objectPath}'`);
+          const bucket = adminStorage.bucket(parsedFirebase.bucketName);
+          const file = bucket.file(parsedFirebase.objectPath);
+          
+          const [exists] = await file.exists();
+          if (!exists) {
+            throw new Error(`File does not exist in GCS bucket: ${parsedFirebase.objectPath}`);
+          }
+          
+          const [metadata] = await file.getMetadata();
+          contentType = metadata.contentType || "video/mp4";
+          
+          const [fileBuffer] = await file.download();
+          buffer = fileBuffer;
+        } catch (err: any) {
+          console.warn(`[Stitch] Firebase GCS direct download failed for ${resolved}, falling back to HTTP fetch:`, err.message);
+          
+          const response = await fetchWithRetry(resolved);
+          if (!response) {
+            console.warn(`[Stitch] Skipping clip ${i} — could not download via GCS or HTTP: ${resolved}`);
+            skippedClips.push(resolved.substring(0, 80));
+            continue;
+          }
+          contentType = response.headers.get("content-type") || "";
+          buffer = Buffer.from(await response.arrayBuffer());
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch clip URL: ${resolved} (${response.status} ${response.statusText})`);
+      } else {
+        const response = await fetchWithRetry(resolved);
+        if (!response) {
+          console.warn(`[Stitch] Skipping clip ${i} — could not download: ${resolved}`);
+          skippedClips.push(resolved.substring(0, 80));
+          continue;
+        }
+        contentType = response.headers.get("content-type") || "";
+        buffer = Buffer.from(await response.arrayBuffer());
       }
 
-      const contentType = response.headers.get("content-type") || "";
       const isImage = contentType.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(resolved);
 
-      const buffer = Buffer.from(await response.arrayBuffer());
+      // Validate we got actual media data (not an error HTML page)
+      if (buffer.length < 1000 && !isImage) {
+        console.warn(`[Stitch] Skipping clip ${i} — response too small (${buffer.length} bytes), likely not a valid video`);
+        skippedClips.push(resolved.substring(0, 80));
+        continue;
+      }
+
       const rawExt = isImage ? ".jpg" : ".mp4";
       const rawInputPath = path.join(tempDir, `raw_${i}${rawExt}`);
       await fs.writeFile(rawInputPath, buffer);
@@ -216,6 +315,14 @@ export async function POST(request: NextRequest) {
       standardizedPaths.push(standardizedPath);
     }
 
+    // If no clips were successfully downloaded, return an error
+    if (standardizedPaths.length === 0) {
+      const errorMsg = skippedClips.length > 0
+        ? `All ${clips.length} clips failed to download. This typically means the video URLs are expired or inaccessible. Skipped URLs: ${skippedClips.join(", ")}`
+        : "No clips could be processed.";
+      return NextResponse.json({ error: errorMsg }, { status: 422 });
+    }
+
     // Now stitch the standardized clips together using the concat demuxer
     const listContent = standardizedPaths.map(p => `file '${p.replace(/\\/g, "/")}'`).join("\n");
     const listPath = path.join(tempDir, "list.txt");
@@ -240,13 +347,21 @@ export async function POST(request: NextRequest) {
       console.error("Failed to clean up temp dir:", err);
     });
 
+    // Build response with info about skipped clips if any
+    const headers: Record<string, string> = {
+      "Content-Type": "video/mp4",
+      "Content-Disposition": 'attachment; filename="Cynemora-Final-Cut.mp4"',
+      "Access-Control-Allow-Origin": "*"
+    };
+    
+    if (skippedClips.length > 0) {
+      headers["X-Skipped-Clips"] = String(skippedClips.length);
+      console.warn(`[Stitch] Completed with ${skippedClips.length} skipped clips out of ${clips.length} total`);
+    }
+
     return new NextResponse(outputBuffer, {
       status: 200,
-      headers: {
-        "Content-Type": "video/mp4",
-        "Content-Disposition": 'attachment; filename="Cynemora-Final-Cut.mp4"',
-        "Access-Control-Allow-Origin": "*"
-      }
+      headers
     });
 
   } catch (error: any) {

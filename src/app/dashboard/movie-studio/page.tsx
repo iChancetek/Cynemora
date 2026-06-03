@@ -463,13 +463,15 @@ export default function MovieStudioPage() {
 
   // Sync current active clip based on playhead time
   useEffect(() => {
+    // Only auto-switch clips when playing (don't override manual selection while paused)
+    if (!isPlaying) return;
     const activeVideoClip = clips.find(
       (c) => (c.track === "V1" || c.track === "V2") && currentTime >= c.start && currentTime < c.start + c.duration
     );
-    if (activeVideoClip) {
+    if (activeVideoClip && activeVideoClip.id !== selectedClip?.id) {
       setSelectedClip(activeVideoClip);
     }
-  }, [currentTime, clips]);
+  }, [currentTime, clips, isPlaying, selectedClip?.id]);
 
   // Sync video element time when user scrubbing timeline
   useEffect(() => {
@@ -1221,13 +1223,21 @@ export default function MovieStudioPage() {
                   />
                 ) : (
                   <video
+                    key={selectedClip.id}
                     ref={videoPlayerRef}
                     src={selectedClip.videoUrl}
                     className={`${styles.monitorVideo} ${styles[`lut_${activeLUT}`]}`}
                     style={filterStyles}
+                    autoPlay
                     loop
                     muted
                     playsInline
+                    crossOrigin="anonymous"
+                    onLoadedData={() => {
+                      if (videoPlayerRef.current) {
+                        videoPlayerRef.current.play().catch(() => {});
+                      }
+                    }}
                   />
                 )
               ) : (
