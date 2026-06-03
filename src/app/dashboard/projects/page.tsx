@@ -1,13 +1,14 @@
 /* ========================================
    CyneMora — Projects List Page
    Lists all user cinematic productions
+   (Real data only — no mocks)
    ======================================== */
 
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/auth-context";
 import styles from "./projects.module.css";
@@ -18,30 +19,10 @@ interface ProjectItem {
   description: string;
   status: string;
   tier: string;
-  createdAt: any;
+  createdAt: Date;
   creditsUsed: number;
+  genres?: string[];
 }
-
-const MOCK_PROJECTS: ProjectItem[] = [
-  {
-    id: "europa-station",
-    title: "Europa Station Seven",
-    description: "A lone scientist on Jupiter's icy moon discovers an ancient anomaly beneath the frozen crust that mirrors her own childhood memories.",
-    status: "planning",
-    tier: "premium",
-    createdAt: new Date(Date.now() - 3600000 * 24),
-    creditsUsed: 15,
-  },
-  {
-    id: "neon-dream",
-    title: "Neon Echoes",
-    description: "In a rain-slicked cyberpunk metropolis, a memory technician struggles to distinguish their own childhood from the commercial memories they sell.",
-    status: "complete",
-    tier: "standard",
-    createdAt: new Date(Date.now() - 3600000 * 48),
-    creditsUsed: 8,
-  }
-];
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -49,16 +30,21 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProjects() {
-      if (!user) return;
-      try {
-        const q = query(
-          collection(db, "projects"),
-          where("userId", "==", user.uid)
-        );
-        const snapshot = await getDocs(q);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, "projects"),
+      where("userId", "==", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
         const items: ProjectItem[] = [];
-        
+
         snapshot.forEach((doc) => {
           const data = doc.data();
           items.push({
@@ -67,33 +53,51 @@ export default function ProjectsPage() {
             description: data.description || "",
             status: data.status || "planning",
             tier: data.tier || "standard",
-            createdAt: data.createdAt?.toDate() || new Date(),
+            createdAt: data.createdAt?.toDate?.() || new Date(),
             creditsUsed: data.creditsUsed || 0,
+            genres: data.genres || [],
           });
         });
 
-        items.sort((a, b) => {
-          const timeA = a.createdAt?.getTime() || 0;
-          const timeB = b.createdAt?.getTime() || 0;
-          return timeB - timeA;
-        });
-
-        // If user has zero projects, show mocks + any guest projects
-        if (items.length === 0) {
-          setProjects(MOCK_PROJECTS);
-        } else {
-          setProjects(items);
-        }
-      } catch (err) {
-        console.error("Failed to load projects, showing fallback", err);
-        setProjects(MOCK_PROJECTS);
-      } finally {
+        items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        setProjects(items);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("[Projects] Snapshot error:", err);
+        setProjects([]);
         setLoading(false);
       }
-    }
+    );
 
-    fetchProjects();
+    return () => unsubscribe();
   }, [user]);
+
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case "complete":
+      case "completed":
+        return "🟢";
+      case "rendering":
+        return "🔵";
+      case "planning":
+      default:
+        return "🟡";
+    }
+  };
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "complete":
+      case "completed":
+        return "Complete";
+      case "rendering":
+        return "Rendering";
+      case "planning":
+      default:
+        return "Planning";
+    }
+  };
 
   return (
     <div className={styles.projectsPage}>
@@ -117,9 +121,10 @@ export default function ProjectsPage() {
       ) : projects.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>🎬</div>
-          <h2 className={styles.emptyTitle}>No Productions</h2>
+          <h2 className={styles.emptyTitle}>No Productions Yet</h2>
           <p className={styles.emptyDesc}>
-            Start your cinematic story with AI Story Intelligence.
+            Your cinematic journey starts here. Create your first production
+            and watch your vision come to life with AI-powered filmmaking.
           </p>
           <Link href="/dashboard/new" className="btn btn-primary btn-lg">
             Create First Production
@@ -136,7 +141,7 @@ export default function ProjectsPage() {
               <div>
                 <div className={styles.projectMeta}>
                   <span className={styles.projectStatus}>
-                    {project.status === "complete" ? "🟢 Complete" : "🟡 Planning"}
+                    {statusIcon(project.status)} {statusLabel(project.status)}
                   </span>
                   <span className={styles.projectTier}>
                     {project.tier}
@@ -150,7 +155,7 @@ export default function ProjectsPage() {
 
               <div className={styles.projectFooter}>
                 <span>
-                  Created: {new Date(project.createdAt).toLocaleDateString()}
+                  Created: {project.createdAt.toLocaleDateString()}
                 </span>
                 <span className={styles.footerStat}>
                   💎 {project.creditsUsed} Credits Used

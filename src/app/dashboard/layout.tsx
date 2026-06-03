@@ -23,6 +23,7 @@ const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { icon: "🎬", label: "Dashboard", href: "/dashboard" },
       { icon: "📁", label: "Projects", href: "/dashboard/projects" },
+      { icon: "📚", label: "Library", href: "/dashboard/library" },
       { icon: "✨", label: "New Project", href: "/dashboard/new" },
     ],
   },

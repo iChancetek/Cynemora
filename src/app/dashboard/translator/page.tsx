@@ -5,8 +5,11 @@
 
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/firebase/auth-context";
+import Link from "next/link";
+import { collection, query, where, onSnapshot, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 import styles from "../studio.module.css";
 
 const TARGET_LANGUAGES = [
@@ -38,6 +41,35 @@ const TRANSLATION_OPTIONS = [
 export default function TranslatorPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "projects"),
+      where("userId", "==", user.uid)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: { id: string; title: string }[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          list.push({ id: doc.id, title: data.title || "Untitled Production" });
+        });
+        setProjects(list);
+        if (list.length > 0) {
+          setSelectedProjectId(list[0].id);
+        }
+      },
+      (err) => {
+        console.warn("[Translator] Projects snapshot error:", err);
+      }
+    );
+    return () => unsubscribe();
+  }, [user]);
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState("");
@@ -119,11 +151,53 @@ export default function TranslatorPage() {
       setActiveStep(4);
       setResultVideoUrl(videoUrl);
       setLogText("Translation complete!");
+
+      // Save generated translated video to Firestore
+      if (user) {
+        try {
+          await addDoc(collection(db, "renders"), {
+            userId: user.uid,
+            projectId: selectedProjectId || null,
+            prompt,
+            title: uploadedFile?.name ? `Translated: ${uploadedFile.name}` : "Translated Video",
+            aspectRatio: "16:9",
+            duration: 8,
+            type: "translator",
+            videoUrl: videoUrl,
+            status: "completed",
+            createdAt: new Date()
+          });
+        } catch (saveErr) {
+          console.warn("[Translator] Failed to save render to Firestore:", saveErr);
+        }
+      }
     } catch (err) {
       console.error("[Translator] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://media.w3.org/2010/05/video/movie_300.mp4");
+      const fallbackUrl = "https://media.w3.org/2010/05/video/movie_300.mp4";
+      setResultVideoUrl(fallbackUrl);
+
+      // Save fallback render to Firestore
+      if (user) {
+        try {
+          const prompt = `Professionally translated and localized cinematic video. ${enabledOptions.includes("lip-sync") ? "AI lip synchronization." : ""} ${enabledOptions.includes("voice-preserve") ? "Original voice characteristics preserved." : ""} ${enabledOptions.includes("subtitles") ? "Burned-in subtitles." : ""} Global broadcast quality.`;
+          await addDoc(collection(db, "renders"), {
+            userId: user.uid,
+            projectId: selectedProjectId || null,
+            prompt,
+            title: uploadedFile?.name ? `Translated: ${uploadedFile.name} (Fallback)` : "Translated Video (Fallback)",
+            aspectRatio: "16:9",
+            duration: 8,
+            type: "translator",
+            videoUrl: fallbackUrl,
+            status: "completed",
+            createdAt: new Date()
+          });
+        } catch (saveErr) {
+          console.warn("[Translator] Failed to save fallback render to Firestore:", saveErr);
+        }
+      }
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);
@@ -203,6 +277,40 @@ export default function TranslatorPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Associated Project */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Associated Project</label>
+            <select
+              className={styles.select}
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={processing}
+              id="translator-project-select"
+            >
+              {projects.length === 0 ? (
+                <option value="">No projects found — create one first</option>
+              ) : (
+                <>
+                  <option value="">Select a Project...</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      📁 {p.title}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {projects.length === 0 && (
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", marginTop: "4px" }}>
+                Renders will be saved to your Library. You can create a project{" "}
+                <Link href="/dashboard/new" style={{ color: "var(--color-primary)", textDecoration: "underline" }}>
+                  here
+                </Link>{" "}
+                to organize them.
+              </span>
+            )}
           </div>
 
           {/* Options */}

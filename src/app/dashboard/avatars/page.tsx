@@ -5,8 +5,11 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/firebase/auth-context";
+import Link from "next/link";
+import { collection, query, where, onSnapshot, addDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 import styles from "../studio.module.css";
 
 interface AvatarProfile {
@@ -54,6 +57,35 @@ const PRESET_AVATARS: AvatarProfile[] = [
 export default function AvatarsPage() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [projects, setProjects] = useState<{ id: string; title: string }[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "projects"),
+      where("userId", "==", user.uid)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: { id: string; title: string }[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          list.push({ id: doc.id, title: data.title || "Untitled Production" });
+        });
+        setProjects(list);
+        if (list.length > 0) {
+          setSelectedProjectId(list[0].id);
+        }
+      },
+      (err) => {
+        console.warn("[Avatars] Projects snapshot error:", err);
+      }
+    );
+    return () => unsubscribe();
+  }, [user]);
 
   const [selectedType, setSelectedType] = useState("presenter");
   const [avatarName, setAvatarName] = useState("");
@@ -139,11 +171,53 @@ export default function AvatarsPage() {
       setActiveStep(4);
       setResultVideoUrl(videoUrl);
       setLogText("Avatar video generated successfully!");
+
+      // Save generated avatar to Firestore
+      if (user) {
+        try {
+          await addDoc(collection(db, "renders"), {
+            userId: user.uid,
+            projectId: selectedProjectId || null,
+            prompt,
+            title: avatarName ? `${avatarName} Avatar Performance` : "AI Avatar Video",
+            aspectRatio: "16:9",
+            duration: 8,
+            provider: "avatar",
+            videoUrl: videoUrl,
+            status: "completed",
+            createdAt: new Date()
+          });
+        } catch (saveErr) {
+          console.warn("[Avatars] Failed to save render to Firestore:", saveErr);
+        }
+      }
     } catch (err) {
       console.error("[Avatars] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://media.w3.org/2010/05/bunny/trailer.mp4");
+      const fallbackUrl = "https://media.w3.org/2010/05/bunny/trailer.mp4";
+      setResultVideoUrl(fallbackUrl);
+
+      // Save fallback render to Firestore
+      if (user) {
+        try {
+          const prompt = `${selectedAvatar?.name || avatarName || "AI Presenter"} speaking: "${script.substring(0, 100)}..." ${personality} personality, ${VOICE_TYPES.find(v => v.id === voiceType)?.label || ""} voice. Professional studio setting, cinematic lighting, ultra-realistic digital human.`;
+          await addDoc(collection(db, "renders"), {
+            userId: user.uid,
+            projectId: selectedProjectId || null,
+            prompt,
+            title: avatarName ? `${avatarName} Avatar Performance (Fallback)` : "AI Avatar Video (Fallback)",
+            aspectRatio: "16:9",
+            duration: 8,
+            provider: "avatar",
+            videoUrl: fallbackUrl,
+            status: "completed",
+            createdAt: new Date()
+          });
+        } catch (saveErr) {
+          console.warn("[Avatars] Failed to save fallback render to Firestore:", saveErr);
+        }
+      }
     } finally {
       setGenerating(false);
       setTimeout(() => setActiveStep(0), 3000);
@@ -263,6 +337,40 @@ export default function AvatarsPage() {
                 <option key={v.id} value={v.id}>{v.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Associated Project */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Associated Project</label>
+            <select
+              className={styles.select}
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={generating}
+              id="avatar-project-select"
+            >
+              {projects.length === 0 ? (
+                <option value="">No projects found — create one first</option>
+              ) : (
+                <>
+                  <option value="">Select a Project...</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      📁 {p.title}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+            {projects.length === 0 && (
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-muted)", marginTop: "4px" }}>
+                Renders will be saved to your Library. You can create a project{" "}
+                <Link href="/dashboard/new" style={{ color: "var(--color-primary)", textDecoration: "underline" }}>
+                  here
+                </Link>{" "}
+                to organize them.
+              </span>
+            )}
           </div>
 
           {/* Script */}

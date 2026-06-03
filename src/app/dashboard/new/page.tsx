@@ -1,12 +1,16 @@
 /* ========================================
    CyneMora — New Project Page
    Create a new cinematic production
+   Persists directly to Firestore
    ======================================== */
 
 "use client";
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/firebase/auth-context";
+import { db } from "@/lib/firebase/client";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import styles from "./new.module.css";
 
 type InputMethod = "concept" | "script" | "story";
@@ -49,11 +53,13 @@ const GENRES = [
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [method, setMethod] = useState<InputMethod>("concept");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   function toggleGenre(genre: string) {
     setSelectedGenres((prev) =>
@@ -65,28 +71,62 @@ export default function NewProjectPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!user) {
+      setError("You must be signed in to create a project.");
+      return;
+    }
+    if (!title.trim() || !content.trim()) {
+      setError("Please provide both a title and content.");
+      return;
+    }
+
     setSubmitting(true);
+    setError("");
 
     try {
-      // TODO: Call Story Agent API to process the input
-      const response = await fetch("/api/agents/story", {
+      // First: create the project in Firestore directly so it appears immediately
+      const projectData = {
+        userId: user.uid,
+        title: title.trim(),
+        description: content.trim().substring(0, 200) + (content.length > 200 ? "..." : ""),
+        status: "planning",
+        tier: "standard",
+        method,
+        genres: selectedGenres,
+        content: content.trim(),
+        creditsUsed: 0,
+        creditsEstimated: content.length > 200 ? 20 : 10,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      const docRef = await addDoc(collection(db, "projects"), projectData);
+
+      // Then: kick off the story agent to enrich the project asynchronously
+      // This is fire-and-forget — the project is already created
+      fetch("/api/agents/story", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title,
-          content,
+          title: title.trim(),
+          content: content.trim(),
           method,
           genres: selectedGenres,
+          projectId: docRef.id,
         }),
+      }).catch((err) => {
+        console.warn("[NewProject] Story agent enrichment failed (non-blocking):", err);
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        router.push(`/dashboard/projects/${data.projectId || "new"}`);
-      }
-    } catch (error) {
-      console.error("Failed to create project:", error);
-    } finally {
+      // Navigate to the new project
+      router.push(`/dashboard/projects/${docRef.id}`);
+    } catch (err) {
+      console.error("[NewProject] Failed to create project:", err);
+      setError(
+        err instanceof Error
+          ? `Failed to create project: ${err.message}`
+          : "Failed to create project. Please try again."
+      );
       setSubmitting(false);
     }
   }
@@ -130,6 +170,23 @@ export default function NewProjectPage() {
         ))}
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div
+          style={{
+            padding: "var(--space-3) var(--space-4)",
+            marginBottom: "var(--space-6)",
+            background: "rgba(248, 113, 113, 0.08)",
+            border: "1px solid rgba(248, 113, 113, 0.2)",
+            borderRadius: "var(--radius-lg)",
+            color: "var(--color-error)",
+            fontSize: "var(--text-sm)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Project Form */}
       <form className={styles.projectForm} onSubmit={handleSubmit}>
         <div className={styles.fieldGroup}>
@@ -144,6 +201,7 @@ export default function NewProjectPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+            disabled={submitting}
           />
         </div>
 
@@ -169,6 +227,7 @@ export default function NewProjectPage() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
+            disabled={submitting}
           />
         </div>
 
@@ -187,6 +246,7 @@ export default function NewProjectPage() {
                     : ""
                 }`}
                 onClick={() => toggleGenre(genre)}
+                disabled={submitting}
               >
                 {genre}
               </button>
@@ -211,6 +271,7 @@ export default function NewProjectPage() {
             type="button"
             className="btn btn-secondary btn-lg"
             onClick={() => router.back()}
+            disabled={submitting}
           >
             Cancel
           </button>
