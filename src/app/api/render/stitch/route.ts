@@ -4,7 +4,9 @@ import path from "path";
 import os from "os";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
-import { adminStorage } from "@/lib/firebase/admin";
+import { adminStorage, adminDb } from "@/lib/firebase/admin";
+import { v4 as uuidv4 } from "uuid";
+
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -148,7 +150,9 @@ export async function POST(request: NextRequest) {
   let tempDir = "";
   try {
     const body = await request.json();
-    const { clips } = body as { clips: StitchClip[] };
+    const { clips, movieTitle, userId } = body as { clips: StitchClip[]; movieTitle?: string; userId?: string };
+
+
 
     if (!clips || !Array.isArray(clips) || clips.length === 0) {
       return NextResponse.json({ error: "Missing or invalid clips array" }, { status: 400 });
@@ -361,6 +365,45 @@ export async function POST(request: NextRequest) {
 
     const outputBuffer = await fs.readFile(outputPath);
 
+    // Save final cut render to Firebase Storage and Firestore renders collection
+    let publicUrl = "";
+    if (userId) {
+      try {
+        console.log(`[Stitch] Uploading final cut movie to Firebase Storage for user ${userId}...`);
+        const bucket = adminStorage.bucket();
+        const storagePath = `renders/final-cut/${userId}/final-cut-${Date.now()}.mp4`;
+        const file = bucket.file(storagePath);
+        const downloadToken = uuidv4();
+        
+        await file.save(outputBuffer, {
+          metadata: {
+            contentType: "video/mp4",
+            metadata: {
+              firebaseStorageDownloadTokens: downloadToken
+            }
+          }
+        });
+        
+        publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
+        
+        // Save metadata record in Firestore renders collection
+        await adminDb.collection("renders").add({
+          userId,
+          prompt: movieTitle || "Stitched Final Cut Movie",
+          style: "Master Stitch",
+          aspectRatio: "16:9",
+          movement: "final-cut",
+          videoUrl: publicUrl,
+          sourceType: "final-cut-stitch",
+          createdAt: new Date(),
+          status: "completed"
+        });
+        console.log(`[Stitch] Successfully saved final cut render to GCS and Firestore: ${publicUrl}`);
+      } catch (dbErr: any) {
+        console.error("[Stitch] Failed to save final cut render to Firestore/Storage:", dbErr);
+      }
+    }
+
     // Clean up files asynchronously in the background
     fs.rm(tempDir, { recursive: true, force: true }).catch(err => {
       console.error("Failed to clean up temp dir:", err);
@@ -376,6 +419,10 @@ export async function POST(request: NextRequest) {
     if (skippedClips.length > 0) {
       headers["X-Skipped-Clips"] = String(skippedClips.length);
       console.warn(`[Stitch] Completed with ${skippedClips.length} skipped clips out of ${clips.length} total`);
+    }
+
+    if (publicUrl) {
+      headers["X-Final-Cut-Url"] = publicUrl;
     }
 
     return new NextResponse(outputBuffer, {

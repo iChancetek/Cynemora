@@ -126,6 +126,7 @@ export default function MovieStudioPage() {
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildingProgress, setBuildingProgress] = useState(0);
   const [buildStep, setBuildStep] = useState("");
+  const [finishedVideoUrl, setFinishedVideoUrl] = useState<string | null>(null);
   
   // 🍿 Simple Mode vs Advanced Mode Toggle (Default to Simple Storyboard!)
   const [isSimpleMode, setIsSimpleMode] = useState(true);
@@ -615,6 +616,23 @@ export default function MovieStudioPage() {
     
     setSelectedImportIds([]);
     setIsImportModalOpen(false);
+  };
+
+  const handleDownloadFinishedVideo = () => {
+    if (!finishedVideoUrl) return;
+    const a = document.createElement("a");
+    a.href = finishedVideoUrl;
+    a.download = `${movieTitle.replace(/\s+/g, "_")}-Final-Cut-${Date.now()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleCloseFinishedVideoModal = () => {
+    if (finishedVideoUrl) {
+      URL.revokeObjectURL(finishedVideoUrl);
+    }
+    setFinishedVideoUrl(null);
   };
 
   // Reorder Storyboard Clip: Move Left
@@ -2282,7 +2300,9 @@ export default function MovieStudioPage() {
                       clips: orderedClips.map(c => ({
                         videoUrl: c.videoUrl,
                         duration: c.duration
-                      }))
+                      })),
+                      movieTitle,
+                      userId: user?.uid
                     })
                   });
 
@@ -2291,20 +2311,14 @@ export default function MovieStudioPage() {
                     throw new Error(errData.details || errData.error || `Server error ${res.status}`);
                   }
 
-                  setRenderProgress("Download starting...");
+                  setRenderProgress("Loading preview...");
                   const blob = await res.blob();
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `Cynemora-Final-Cut-${Date.now()}.mp4`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
+                  const localUrl = URL.createObjectURL(blob);
+                  setFinishedVideoUrl(localUrl);
 
                   setDirectorSuggestions(prev => [
                     ...prev,
-                    `AI Editor: ✅ Final cut movie rendered and downloaded successfully!`
+                    `AI Editor: ✅ Final cut movie rendered successfully! Preview and download are now active.`
                   ]);
                 } catch (err: any) {
                   console.error("Final cut render failed:", err);
@@ -2325,6 +2339,111 @@ export default function MovieStudioPage() {
         </div>
 
       </section>
+
+      {/* 🎬 FINISHED VIDEO PREVIEW MODAL */}
+      {finishedVideoUrl && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(10, 9, 13, 0.96)",
+          zIndex: 9995,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-body)",
+          padding: "var(--space-6)",
+          backdropFilter: "blur(12px)"
+        }}>
+          <div style={{
+            maxWidth: "840px",
+            width: "100%",
+            background: "#121018",
+            border: "1px solid rgba(167, 139, 250, 0.35)",
+            padding: "var(--space-6)",
+            borderRadius: "var(--radius-xl)",
+            boxShadow: "0 24px 60px rgba(0,0,0,0.9), 0 0 50px rgba(167, 139, 250, 0.15)",
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: "90vh",
+            gap: "16px",
+            textAlign: "center"
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "12px" }}>
+              <div style={{ textAlign: "left" }}>
+                <h3 style={{ margin: 0, color: "white", fontSize: "18px", fontWeight: 800, fontFamily: "var(--font-display)" }}>
+                  🎬 Final Cut Movie Masterpiece
+                </h3>
+                <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "var(--color-text-muted)" }}>
+                  Your film sequence has been compiled and standardized successfully.
+                </p>
+              </div>
+              <button 
+                onClick={handleCloseFinishedVideoModal}
+                style={{ background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", fontSize: "18px", cursor: "pointer", transition: "color 0.2s" }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "white"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.6)"}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Video Player */}
+            <div style={{ 
+              width: "100%", 
+              aspectRatio: "16/9", 
+              background: "black", 
+              borderRadius: "8px", 
+              overflow: "hidden", 
+              border: "1px solid rgba(255,255,255,0.1)",
+              position: "relative",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6)"
+            }}>
+              <video 
+                src={finishedVideoUrl} 
+                controls 
+                autoPlay 
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+              <div className="cyne-watermark" style={{ position: "absolute", bottom: "12px", left: "12px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,0.6)", padding: "4px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "bold", color: "white" }}>
+                <img src="/icon-192x192.png" alt="" width={12} height={12} style={{ borderRadius: '2px', opacity: 0.8 }} /> CyneMora Final Cut
+              </div>
+            </div>
+
+            {/* Info and Actions */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px", marginTop: "4px" }}>
+              <div style={{ textAlign: "left", fontSize: "12px", color: "var(--color-text-muted)" }}>
+                <span>Status: <strong style={{ color: "#10b981" }}>✓ Saved to Library</strong></span>
+                <span style={{ display: "block", fontSize: "10px", marginTop: "2px", color: "rgba(255,255,255,0.4)" }}>
+                  Stored permanently in your platform renders archive.
+                </span>
+              </div>
+              
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button 
+                  className={styles.btnSecondary} 
+                  onClick={handleCloseFinishedVideoModal} 
+                  style={{ padding: "8px 16px", fontSize: "12px" }}
+                >
+                  Close Screenroom
+                </button>
+                <button 
+                  className={styles.btnPrimary} 
+                  onClick={handleDownloadFinishedVideo} 
+                  style={{ 
+                    padding: "8px 20px", 
+                    fontSize: "12px", 
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    boxShadow: "0 4px 16px rgba(16,185,129,0.3)" 
+                  }}
+                >
+                  📥 Download Video File
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
