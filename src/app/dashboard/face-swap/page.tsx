@@ -120,7 +120,7 @@ export default function FaceSwapPage() {
       console.error("[Face Swap] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4");
+      setResultVideoUrl("https://media.w3.org/2010/05/bunny/trailer.mp4");
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);

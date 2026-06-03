@@ -71,10 +71,10 @@ const PRESETS = [
 ];
 
 const CINEMATIC_VIDEOS = [
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4"
+  "https://www.w3schools.com/html/mov_bbb.mp4",
+  "https://media.w3.org/2010/05/bunny/trailer.mp4",
+  "https://media.w3.org/2010/05/sintel/trailer_hd.mp4",
+  "https://media.w3.org/2010/05/video/movie_300.mp4"
 ];
 
 function VideoThumbnail({ src, className }: { src: string, className?: string }) {

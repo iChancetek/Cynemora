@@ -179,7 +179,7 @@ export default function PPTToVideoPage() {
       console.error("[PPT-to-Video] Error:", err);
       setLogText("Switching to cinematic fallback...");
       setActiveStep(4);
-      const fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+      const fallbackUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
       setResultVideoUrl(proxyVideoUrl(fallbackUrl));
 
       if (user) {

@@ -66,6 +66,18 @@ function resolveUrl(url: string): string {
     }
   }
 
+  if (decodedUrl.includes("gtv-videos-bucket/sample/")) {
+    if (decodedUrl.includes("ForBiggerFun.mp4")) {
+      decodedUrl = "https://media.w3.org/2010/05/sintel/trailer_hd.mp4";
+    } else if (decodedUrl.includes("ForBiggerBlazes.mp4")) {
+      decodedUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+    } else if (decodedUrl.includes("ForBiggerEscapes.mp4")) {
+      decodedUrl = "https://media.w3.org/2010/05/bunny/trailer.mp4";
+    } else if (decodedUrl.includes("ForBiggerJoyrides.mp4")) {
+      decodedUrl = "https://media.w3.org/2010/05/video/movie_300.mp4";
+    }
+  }
+
   return decodedUrl;
 }
 

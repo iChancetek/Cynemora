@@ -113,7 +113,7 @@ export default function DubbingPage() {
       console.error("[Dubbing] Error:", err);
       setLogText("Using cinematic fallback...");
       setActiveStep(4);
-      setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
+      setResultVideoUrl("https://www.w3schools.com/html/mov_bbb.mp4");
     } finally {
       setProcessing(false);
       setTimeout(() => setActiveStep(0), 3000);

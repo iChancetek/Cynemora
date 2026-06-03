@@ -215,8 +215,8 @@ export default function ImageToVideoPage() {
       setActiveStep(4);
 
       const fallbackUrls = [
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+        "https://www.w3schools.com/html/mov_bbb.mp4",
+        "https://media.w3.org/2010/05/video/movie_300.mp4",
       ];
       const fallbackUrl = fallbackUrls[Math.floor(Math.random() * fallbackUrls.length)];
       setResultVideoUrl(fallbackUrl);

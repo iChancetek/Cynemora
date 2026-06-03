@@ -193,7 +193,7 @@ export default function AudioToVideoPage() {
       setLogText("Switching to cinematic fallback...");
       setActiveStep(4);
 
-      const fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4";
+      const fallbackUrl = "https://media.w3.org/2010/05/sintel/trailer_hd.mp4";
       setResultVideoUrl(proxyVideoUrl(fallbackUrl));
 
       if (user) {
