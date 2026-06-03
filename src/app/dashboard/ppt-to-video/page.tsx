@@ -12,6 +12,31 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase/client";
 import styles from "../studio.module.css";
 
+/** Normalise video URLs — Firebase Storage / public URLs pass through;
+ *  raw Gemini URIs get wrapped in the server proxy. */
+function proxyVideoUrl(url: string): string {
+  if (!url) return url;
+  if (url.includes("storage.googleapis.com/") || url.includes("firebasestorage.googleapis.com/") || url.includes("firebasestorage.app/")) {
+    return url;
+  }
+  let rawUrl = url;
+  while (true) {
+    const proxyIdx = rawUrl.indexOf("/api/render/proxy?url=");
+    const b64ProxyIdx = rawUrl.indexOf("/api/render/proxy?b64url=");
+    if (proxyIdx !== -1) {
+      rawUrl = decodeURIComponent(rawUrl.substring(proxyIdx + "/api/render/proxy?url=".length));
+    } else if (b64ProxyIdx !== -1) {
+      const b64Str = rawUrl.substring(b64ProxyIdx + "/api/render/proxy?b64url=".length);
+      try { rawUrl = atob(b64Str); } catch (e) { break; }
+    } else { break; }
+  }
+  if (rawUrl.includes("generativelanguage.googleapis.com")) {
+    const b64Url = btoa(rawUrl);
+    return `/api/render/proxy?b64url=${b64Url}`;
+  }
+  return rawUrl;
+}
+
 const NARRATION_VOICES = [
   { id: "professional", label: "Professional", desc: "Polished corporate tone" },
   { id: "friendly", label: "Friendly", desc: "Warm and approachable" },
@@ -137,7 +162,7 @@ export default function PPTToVideoPage() {
       if (!isDone || !videoUrl) throw new Error("Processing timed out");
 
       setActiveStep(4);
-      setResultVideoUrl(videoUrl);
+      setResultVideoUrl(proxyVideoUrl(videoUrl));
       setLogText("Presentation video created successfully!");
 
       if (user) {
@@ -155,7 +180,7 @@ export default function PPTToVideoPage() {
       setLogText("Switching to cinematic fallback...");
       setActiveStep(4);
       const fallbackUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-      setResultVideoUrl(fallbackUrl);
+      setResultVideoUrl(proxyVideoUrl(fallbackUrl));
 
       if (user) {
         try {
@@ -288,9 +313,25 @@ export default function PPTToVideoPage() {
         <div className={styles.outputArea}>
           <div className={styles.previewBox}>
             {resultVideoUrl ? (
-              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay />
+              <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <video className={styles.previewVideo} src={resultVideoUrl} controls loop autoPlay style={{ flex: 1 }} />
                 <div className="cyne-watermark"><img src="/icon-192x192.png" alt="" width={14} height={14} style={{ borderRadius: '2px', opacity: 0.8 }} /> CyneMora</div>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', padding: 'var(--space-3)', justifyContent: 'center' }}>
+                  <a
+                    href={resultVideoUrl}
+                    download={`Cynemora-PPT2Video-${Date.now()}.mp4`}
+                    className="btn btn-primary btn-sm"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    ⬇️ Download Video
+                  </a>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => { setResultVideoUrl(''); setUploadedFile(null); }}
+                  >
+                    🔄 New Generation
+                  </button>
+                </div>
               </div>
             ) : (
               <div className={styles.previewPlaceholder}>

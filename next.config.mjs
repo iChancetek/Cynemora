@@ -11,6 +11,7 @@ if (process.env.FIREBASE_WEBAPP_CONFIG) {
 }
 
 const nextConfig = {
+  serverExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg"],
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || webAppConfig.apiKey || "",
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || webAppConfig.authDomain || "",

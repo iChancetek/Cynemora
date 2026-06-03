@@ -194,6 +194,8 @@ export default function MovieStudioPage() {
   // Export properties
   const [exportFormat, setExportFormat] = useState("MP4");
   const [exportResolution, setExportResolution] = useState("4K (2160p)");
+  const [isRenderingFinalCut, setIsRenderingFinalCut] = useState(false);
+  const [renderProgress, setRenderProgress] = useState("");
 
   // Load real videos and Visual DNA characters created by the user from Firestore
   useEffect(() => {
@@ -2237,16 +2239,77 @@ export default function MovieStudioPage() {
 
             <button 
               className={styles.btnPrimary} 
-              style={{ padding: "10px 24px", marginLeft: "auto" }} 
-              onClick={() => {
+              style={{ padding: "10px 24px", marginLeft: "auto", opacity: isRenderingFinalCut ? 0.6 : 1 }} 
+              disabled={isRenderingFinalCut}
+              onClick={async () => {
                 if (clips.length === 0) {
                   alert("Please add some scenes to your storyboard sequence before exporting!");
                   return;
                 }
-                alert(`Queuing Hollywood Master Export in render queue!\nFormat: ${exportFormat}\nResolution: ${exportResolution}`);
+
+                // Sort clips by their start position on the timeline
+                const orderedClips = [...clips]
+                  .filter(c => c.videoUrl)
+                  .sort((a, b) => a.start - b.start);
+
+                if (orderedClips.length === 0) {
+                  alert("No clips with video URLs found in your storyboard.");
+                  return;
+                }
+
+                setIsRenderingFinalCut(true);
+                setRenderProgress(`Merging ${orderedClips.length} clips into one movie...`);
+                setDirectorSuggestions(prev => [
+                  ...prev,
+                  `AI Editor: Rendering final cut movie with ${orderedClips.length} clips. This may take a moment...`
+                ]);
+
+                try {
+                  const res = await fetch("/api/render/stitch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      clips: orderedClips.map(c => ({
+                        videoUrl: c.videoUrl,
+                        duration: c.duration
+                      }))
+                    })
+                  });
+
+                  if (!res.ok) {
+                    const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+                    throw new Error(errData.details || errData.error || `Server error ${res.status}`);
+                  }
+
+                  setRenderProgress("Download starting...");
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `Cynemora-Final-Cut-${Date.now()}.mp4`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+
+                  setDirectorSuggestions(prev => [
+                    ...prev,
+                    `AI Editor: ✅ Final cut movie rendered and downloaded successfully!`
+                  ]);
+                } catch (err: any) {
+                  console.error("Final cut render failed:", err);
+                  alert(`Failed to render final cut: ${err.message}`);
+                  setDirectorSuggestions(prev => [
+                    ...prev,
+                    `AI Editor: ❌ Final cut render failed: ${err.message}`
+                  ]);
+                } finally {
+                  setIsRenderingFinalCut(false);
+                  setRenderProgress("");
+                }
               }}
             >
-              🚀 Render Final Cut Movie
+              {isRenderingFinalCut ? `⏳ ${renderProgress || "Rendering..."}` : "🚀 Render Final Cut Movie"}
             </button>
           </div>
         </div>
