@@ -161,12 +161,10 @@ export async function POST(request: NextRequest) {
     const skippedClips: string[] = [];
     const origin = request.nextUrl.origin;
 
-    // Process each clip
-    for (let i = 0; i < clips.length; i++) {
-      const clip = clips[i];
+    // 1. Download all provided clips in parallel first (huge latency savings)
+    const downloadPromises = clips.map(async (clip, idx) => {
       const resolved = resolveUrl(clip.videoUrl, origin);
-
-      console.log(`[Stitch] Processing clip ${i + 1}/${clips.length}: ${resolved.substring(0, 120)}...`);
+      console.log(`[Stitch] Starting download for clip ${idx + 1}/${clips.length}: ${resolved.substring(0, 100)}...`);
 
       let buffer: Buffer;
       let contentType = "";
@@ -189,13 +187,10 @@ export async function POST(request: NextRequest) {
           const [fileBuffer] = await file.download();
           buffer = fileBuffer;
         } catch (err: any) {
-          console.warn(`[Stitch] Firebase GCS direct download failed for ${resolved}, falling back to HTTP fetch:`, err.message);
-          
+          console.warn(`[Stitch] Firebase GCS direct download failed for clip ${idx}, trying HTTP fetch:`, err.message);
           const response = await fetchWithRetry(resolved);
           if (!response) {
-            console.warn(`[Stitch] Skipping clip ${i} — could not download via GCS or HTTP: ${resolved}`);
-            skippedClips.push(resolved.substring(0, 80));
-            continue;
+            throw new Error(`Failed to download clip ${idx} via GCS or HTTP`);
           }
           contentType = response.headers.get("content-type") || "";
           buffer = Buffer.from(await response.arrayBuffer());
@@ -203,41 +198,62 @@ export async function POST(request: NextRequest) {
       } else {
         const response = await fetchWithRetry(resolved);
         if (!response) {
-          console.warn(`[Stitch] Skipping clip ${i} — could not download: ${resolved}`);
-          skippedClips.push(resolved.substring(0, 80));
-          continue;
+          throw new Error(`Failed to download clip ${idx} via HTTP`);
         }
         contentType = response.headers.get("content-type") || "";
         buffer = Buffer.from(await response.arrayBuffer());
       }
 
-      const isImage = contentType.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(resolved);
+      return { idx, buffer, contentType, resolved, duration: clip.duration };
+    });
+
+    const downloadResults = await Promise.allSettled(downloadPromises);
+
+    const downloadedClips: { idx: number; buffer: Buffer; contentType: string; resolved: string; duration: number }[] = [];
+
+    for (let i = 0; i < downloadResults.length; i++) {
+      const result = downloadResults[i];
+      const origClip = clips[i];
+      if (result.status === "fulfilled") {
+        downloadedClips.push(result.value);
+      } else {
+        console.warn(`[Stitch] Skipping clip ${i} — failed to download: ${origClip.videoUrl}`);
+        skippedClips.push(origClip.videoUrl.substring(0, 80));
+      }
+    }
+
+    // Sort to maintain original sequential timeline order
+    downloadedClips.sort((a, b) => a.idx - b.idx);
+
+    // 2. Standardize each clip sequentially (safer CPU utilization)
+    for (let i = 0; i < downloadedClips.length; i++) {
+      const dClip = downloadedClips[i];
+      const isImage = dClip.contentType.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif)$/i.test(dClip.resolved);
 
       // Validate we got actual media data (not an error HTML page)
-      if (buffer.length < 1000 && !isImage) {
-        console.warn(`[Stitch] Skipping clip ${i} — response too small (${buffer.length} bytes), likely not a valid video`);
-        skippedClips.push(resolved.substring(0, 80));
+      if (dClip.buffer.length < 1000 && !isImage) {
+        console.warn(`[Stitch] Skipping clip ${dClip.idx} — response too small (${dClip.buffer.length} bytes), likely not a valid video`);
+        skippedClips.push(dClip.resolved.substring(0, 80));
         continue;
       }
 
       const rawExt = isImage ? ".jpg" : ".mp4";
-      const rawInputPath = path.join(tempDir, `raw_${i}${rawExt}`);
-      await fs.writeFile(rawInputPath, buffer);
+      const rawInputPath = path.join(tempDir, `raw_${dClip.idx}${rawExt}`);
+      await fs.writeFile(rawInputPath, dClip.buffer);
 
-      const standardizedPath = path.join(tempDir, `standard_${i}.mp4`);
+      const standardizedPath = path.join(tempDir, `standard_${dClip.idx}.mp4`);
 
-      // Standardize the asset (resolution 1280x720, 30fps, libx264, stereo AAC audio)
+      // Standardize the asset (resolution 1280x720, 30fps, libx264, stereo AAC audio, and limit duration)
       await new Promise<void>((resolve, reject) => {
         let ffmpegCmd = ffmpeg();
 
         if (isImage) {
           ffmpegCmd
             .input(rawInputPath)
-            .inputOptions(["-loop 1", `-t ${clip.duration}`])
+            .inputOptions(["-loop 1", `-t ${dClip.duration}`])
             .input("anullsrc=channel_layout=stereo:sample_rate=44100")
             .inputOptions(["-f lavfi"]);
         } else {
-          // Check if video has audio stream using ffprobe
           ffmpegCmd.input(rawInputPath);
         }
 
@@ -250,7 +266,8 @@ export async function POST(request: NextRequest) {
             "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
             "-r", "30",
             "-pix_fmt", "yuv420p",
-            "-shortest"
+            "-shortest",
+            "-t", String(dClip.duration) // Safety guard: restrict maximum clip runtime
           ]);
 
         // If it's a video, we want to map audio if it exists, otherwise add silent audio
@@ -269,7 +286,8 @@ export async function POST(request: NextRequest) {
                   "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
                   "-r", "30",
                   "-pix_fmt", "yuv420p",
-                  "-shortest"
+                  "-shortest",
+                  "-t", String(dClip.duration)
                 ])
                 .save(standardizedPath)
                 .on("end", () => resolve())
@@ -293,7 +311,8 @@ export async function POST(request: NextRequest) {
                     "-vf", "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2",
                     "-r", "30",
                     "-pix_fmt", "yuv420p",
-                    "-shortest"
+                    "-shortest",
+                    "-t", String(dClip.duration)
                   ]);
               }
               ffmpegCmd
