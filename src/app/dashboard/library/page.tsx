@@ -334,9 +334,11 @@ export default function LibraryPage() {
                   <img src={asset.url} alt={asset.title} loading="lazy" />
                 ) : asset.thumbnailUrl ? (
                   <img src={asset.thumbnailUrl} alt={asset.title} loading="lazy" />
+                ) : asset.type === "video" || asset.type === "final-cut" ? (
+                  <video src={asset.url} muted playsInline preload="metadata" className={styles.thumbVideoPreview} />
                 ) : (
                   <div className={styles.assetThumbIcon}>
-                    {asset.type === "video" ? "🎬" : asset.type === "podcast" ? "🎙️" : asset.type === "final-cut" ? "🎞️" : "📦"}
+                    {asset.type === "podcast" ? "🎙️" : "📦"}
                   </div>
                 )}
                 {asset.type !== "image" && (
